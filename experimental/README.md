@@ -35,7 +35,6 @@ The stack uses mature open-source components instead of a custom storage backend
 
 - **RL-native state tracing**: record rollout, logprob, reward, critic, and optimizer phases as timeline intervals.
 - **Metric APIs with labels**: emit counters, gauges, and histograms with worker, replica, stage, or experiment labels.
-- **Experiment identity**: attach `project` and `experiment_name` once in `insight.init(...)`; they are propagated to metrics and traces.
 - **Ray-friendly collection**: trainers send events to a detached Ray monitor hub, which exposes `/metrics` and exports traces.
 - **Managed local stack**: install, start, stop, and configure Prometheus, Tempo, and Grafana from one CLI.
 - **Self-hosted by default**: data is stored locally under `~/.rl-insight/data` unless configured otherwise.
@@ -87,7 +86,7 @@ import os
 import ray
 import rl_insight as insight
 
-os.environ["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] = "http://<server-ip>:4318/v1/traces"
+os.environ["RL_INSIGHT_SERVICE_IP"] = "<server-ip>"
 
 ray.init(address="auto", namespace="rl-insight-monitor")
 insight.init(project="verl", experiment_name="ppo-smoke-test")
@@ -172,15 +171,17 @@ insight.init(
     project="verl",
     experiment_name="ppo-smoke-test",
     config={
-        "namespace": "rl_insight_monitor",
-        "backend": {"type": "ray"},
+        "server": {
+            "namespace": "rl_insight_monitor",
+            "backend": "ray",
+            "service_ip": "127.0.0.1",
+        },
         "prometheus": {
             "metrics_report_port": 9092,
             "prometheus_port": 9090,
-            "reload": {"mode": "ray"},
         },
         "otel": {
-            "traces_endpoint": "http://127.0.0.1:4318/v1/traces",
+            "otel_port": 4318,
         },
     },
 )
@@ -188,15 +189,22 @@ insight.init(
 
 Important keys:
 
-- `namespace`: metric namespace and trace resource namespace.
-- `backend.type`: monitor backend; currently `ray`.
+- `server.namespace`: metric namespace and trace resource namespace.
+- `server.backend`: monitor backend; currently `ray`.
+- `server.service_ip`: required RL-Insight server IP used to build the OTLP trace endpoint.
 - `prometheus.metrics_report_port`: monitor hub `/metrics` port.
 - `prometheus.prometheus_port`: Prometheus HTTP port used for reload.
 - `prometheus.config_file`: Prometheus config file to rewrite.
-- `prometheus.reload.mode`: `ray` or `none`.
-- `otel.traces_endpoint`: trainer OTLP/HTTP trace endpoint.
+- `otel.otel_port`: OTLP/HTTP trace export port.
 
-`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` takes precedence over `config["otel"]["traces_endpoint"]`.
+`RL_INSIGHT_SERVICE_IP` and `RL_INSIGHT_OTEL_PORT` take precedence over `config["server"]["service_ip"]` and `config["otel"]["otel_port"]`.
+
+Training-side environment variables:
+
+- `RL_INSIGHT_SERVICE_IP` (required): IP address printed by `rl-insight server start`; trainers use it to export traces to Tempo.
+- `RL_INSIGHT_OTEL_PORT`: OTLP/HTTP port, default `4318`.
+- `RL_INSIGHT_PROMETHEUS_PORT`: Prometheus HTTP port, default `9090`.
+- `RL_INSIGHT_PROMETHEUS_CONFIG_FILE`: Prometheus config file to update when the monitor hub registers scrape targets.
 
 ### Server YAML
 
@@ -211,7 +219,7 @@ Frequently changed keys:
 - `server.state_file`: PID state file used by `server stop`.
 - `prometheus.prometheus_port`: Prometheus UI and API port.
 - `tempo.query_port`: Tempo query port.
-- `otel.traces_endpoint`: trainer-facing OTLP traces URL.
+- `otel.otel_port`: trainer-facing OTLP HTTP port.
 - `grafana.port`: Grafana HTTP port.
 - `grafana.provisioning_dir`: datasource / dashboard provisioning directory.
 - `grafana.dashboards_dir`: dashboard JSON directory.

@@ -76,8 +76,8 @@ class OpenTelemetryTraceCollector:
         if not resolved_endpoint:
             logger.warning(
                 "OpenTelemetry trace export is disabled because no OTLP endpoint is configured. "
-                "Trainers: set OTEL_EXPORTER_OTLP_TRACES_ENDPOINT or init dict key ``otel.traces_endpoint``. "
-                "Stack YAML: top-level ``otel.traces_endpoint`` (see bundled ``config/services/config.yaml``)."
+                "Trainers: set RL_INSIGHT_SERVICE_IP or init dict key ``server.service_ip``. "
+                "Stack YAML: ``server.service_ip`` (see bundled ``config/services/config.yaml``)."
             )
             return
 

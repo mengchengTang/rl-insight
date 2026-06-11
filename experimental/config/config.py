@@ -29,24 +29,32 @@ MONITOR_CONFIG_DIR = Path(__file__).resolve().parent
 MONITOR_SERVICE_CONFIG_DIR = MONITOR_CONFIG_DIR / "services"
 MONITOR_CONFIG_FILE = MONITOR_SERVICE_CONFIG_DIR / "config.yaml"
 
-OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
-
 MONITOR_HUB_ACTOR_NAME = "RLInsightMonitorHub"
 MONITOR_RAY_NAMESPACE = "rl-insight-monitor"
 
 _DEFAULT_PROM_FILE = str((MONITOR_SERVICE_CONFIG_DIR / "prometheus.yml").resolve())
+_DEFAULT_OTEL_PORT = 4318
+
+RL_INSIGHT_SERVICE_IP = "RL_INSIGHT_SERVICE_IP"
+RL_INSIGHT_PROMETHEUS_PORT = "RL_INSIGHT_PROMETHEUS_PORT"
+RL_INSIGHT_OTEL_PORT = "RL_INSIGHT_OTEL_PORT"
+RL_INSIGHT_PROMETHEUS_CONFIG_FILE = "RL_INSIGHT_PROMETHEUS_CONFIG_FILE"
 
 _TRAINING_MONITOR_DEFAULTS = OmegaConf.create(
     {
-        "namespace": "rl_insight_monitor",
-        "backend": {"type": "ray"},
+        "server": {
+            "namespace": "rl_insight_monitor",
+            "backend": "ray",
+            "service_ip": "",
+        },
         "prometheus": {
             "metrics_report_port": 9092,
             "prometheus_port": 9090,
             "config_file": _DEFAULT_PROM_FILE,
-            "reload": {"mode": "ray"},
         },
-        "otel": {"traces_endpoint": "http://127.0.0.1:4318/v1/traces"},
+        "otel": {
+            "otel_port": _DEFAULT_OTEL_PORT,
+        },
     }
 )
 
@@ -56,23 +64,42 @@ __all__ = [
     "MONITOR_SERVICE_CONFIG_DIR",
     "MONITOR_HUB_ACTOR_NAME",
     "MONITOR_RAY_NAMESPACE",
-    "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+    "RL_INSIGHT_SERVICE_IP",
+    "RL_INSIGHT_PROMETHEUS_PORT",
+    "RL_INSIGHT_OTEL_PORT",
+    "RL_INSIGHT_PROMETHEUS_CONFIG_FILE",
     "load_monitor_config",
     "load_server_config_file",
-    "resolve_monitor_stack_paths",
 ]
+
+
+def _apply_env_overrides(conf: DictConfig) -> None:
+    service_ip = os.environ.get(
+        RL_INSIGHT_SERVICE_IP,
+        str(OmegaConf.select(conf, "server.service_ip") or ""),
+    )
+    conf.server.service_ip = str(service_ip).strip()
+
+    if otel_port := os.environ.get(RL_INSIGHT_OTEL_PORT):
+        conf.otel.otel_port = int(otel_port)
+    if prometheus_port := os.environ.get(RL_INSIGHT_PROMETHEUS_PORT):
+        conf.prometheus.prometheus_port = int(prometheus_port)
+    if prometheus_config := os.environ.get(RL_INSIGHT_PROMETHEUS_CONFIG_FILE):
+        conf.prometheus.config_file = str(
+            Path(prometheus_config).expanduser().resolve()
+        )
 
 
 def load_monitor_config(
     config: Mapping[str, Any] | DictConfig | None = None,
 ) -> DictConfig:
-    """Merge trainer monitor defaults with optional user config and resolve OTLP trace endpoint.
+    """Merge trainer monitor defaults with optional user config.
 
     Args:
         config: Partial mapping or ``DictConfig`` merged on top of built-in training defaults; may be ``None``.
 
     Returns:
-        Fully merged config; ``otel.traces_endpoint`` prefers non-empty ``OTEL_EXPORTER_OTLP_TRACES_ENDPOINT``.
+        Fully merged config with environment variable overrides applied.
     """
     base = OmegaConf.create(
         OmegaConf.to_container(_TRAINING_MONITOR_DEFAULTS, resolve=True)
@@ -87,99 +114,28 @@ def load_monitor_config(
         )
         merged = OmegaConf.merge(base, user)
 
-    env_ep = os.environ.get(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, "").strip()
-    dict_ep = str(OmegaConf.select(merged, "otel.traces_endpoint") or "").strip()
-    final_ep = env_ep if env_ep else dict_ep
-    if not final_ep:
-        logger.warning(
-            "No OTLP traces endpoint: set %s or ``otel.traces_endpoint`` in the monitor config dict. Trace export disabled.",
-            OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
-        )
-    if merged.get("otel") is None:
-        merged.otel = OmegaConf.create({})
-    merged.otel.traces_endpoint = final_ep
+    _apply_env_overrides(merged)
     return merged
 
 
 def load_server_config_file(config_path: str | Path | None = None) -> DictConfig:
-    """Load server YAML used by ``rl-insight server start/stop`` and resolve paths.
+    """Load server YAML used by ``rl-insight server start/stop``.
 
     Args:
         config_path: YAML file path; default is the bundled ``config/services/config.yaml``.
 
     Returns:
-        Loaded config with service file paths resolved against the YAML directory.
+        Loaded server config.
     """
     yaml_path = (
         MONITOR_CONFIG_FILE.resolve()
         if config_path is None
         else Path(config_path).expanduser().resolve()
     )
-    conf = OmegaConf.load(str(yaml_path))
-    resolve_monitor_stack_paths(conf, yaml_path.parent)
+    conf = OmegaConf.merge(
+        OmegaConf.create({"service_root": str(yaml_path.parent)}),
+        OmegaConf.load(str(yaml_path)),
+    )
+    conf = OmegaConf.create(OmegaConf.to_container(conf, resolve=True))
+    del conf.service_root
     return conf
-
-
-def resolve_monitor_stack_paths(conf: DictConfig, config_root: Path) -> None:
-    """Mutate ``conf`` so stack file/directory paths become absolute.
-
-    Args:
-        conf: Stack config as loaded from YAML.
-        config_root: Directory used to resolve relative paths (typically the YAML parent folder).
-    """
-    root = Path(config_root).expanduser().resolve()
-    filenames = {
-        "prometheus": "prometheus.yml",
-        "tempo": "tempo.yaml",
-        "grafana": "grafana.ini",
-    }
-    for section, filename in filenames.items():
-        section_conf = conf.get(section)
-        if section_conf is None:
-            continue
-        if not section_conf.get("config_file"):
-            section_conf.config_file = str(
-                (MONITOR_SERVICE_CONFIG_DIR / filename).resolve()
-            )
-            continue
-        path = Path(str(section_conf.config_file)).expanduser()
-        if not path.is_absolute():
-            path = root / path
-        section_conf.config_file = str(path.resolve())
-
-    grafana = conf.get("grafana")
-    if grafana is not None:
-        for key in ("provisioning_dir", "dashboards_dir"):
-            path_value = grafana.get(key)
-            if not path_value:
-                continue
-            path = Path(str(path_value)).expanduser()
-            if not path.is_absolute():
-                path = root / path
-            grafana[key] = str(path.resolve())
-
-    server = conf.get("server")
-    if server is not None:
-        for key in ("install_dir", "runtime_dir", "data_dir", "state_file"):
-            path_value = server.get(key)
-            if not path_value:
-                continue
-            path = Path(str(path_value)).expanduser()
-            if not path.is_absolute():
-                path = root / path
-            server[key] = str(path.resolve())
-
-    for section in ("prometheus", "tempo", "grafana"):
-        section_conf = conf.get(section)
-        if section_conf is None or not section_conf.get("binary_path"):
-            continue
-        path = Path(str(section_conf.binary_path)).expanduser()
-        if not path.is_absolute():
-            path = root / path
-        section_conf.binary_path = str(path.resolve())
-
-    if grafana is not None and grafana.get("homepath"):
-        path = Path(str(grafana.homepath)).expanduser()
-        if not path.is_absolute():
-            path = root / path
-        grafana.homepath = str(path.resolve())

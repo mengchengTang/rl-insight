@@ -1,7 +1,5 @@
 server:
-  enable: true
   backend: local
-  project_name: rl-insight-monitor
 
 prometheus:
   enable: true
@@ -9,10 +7,10 @@ prometheus:
   install_version: 2.54.1
   prometheus_port: 9090
   retention_time: 30d
-  config_file: prometheus.yml
+  config_file: ${service_root}/prometheus.yml
 
 otel:
-  traces_endpoint: http://127.0.0.1:4318/v1/traces
+  otel_port: 4318
 
 tempo:
   enable: true
@@ -20,13 +18,13 @@ tempo:
   install_version: 2.6.1
   query_port: 3200
   retention_time: 30d
-  config_file: tempo.yaml
+  config_file: ${service_root}/tempo.yaml
 
 grafana:
   enable: true
   min_version: 9.0.0
   install_version: 11.6.3
   port: 3000
-  config_file: grafana.ini
-  provisioning_dir: provisioning
-  dashboards_dir: dashboards
+  config_file: ${service_root}/grafana.ini
+  provisioning_dir: ${service_root}/provisioning
+  dashboards_dir: ${service_root}/dashboards

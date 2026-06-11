@@ -96,17 +96,26 @@ def init(
         return
 
     monitor_conf = load_monitor_config(config)
+    if not str(monitor_conf.server.service_ip).strip():
+        logger.error(
+            "RL-Insight service IP is required; set RL_INSIGHT_SERVICE_IP "
+            "or server.service_ip."
+        )
+        return
     client = create_monitor_client(monitor_conf)
-    labels: dict[str, Any] = {}
-    if project is not None:
-        labels["project"] = project
-    if experiment_name is not None:
-        labels["experiment_name"] = experiment_name
+    labels = {
+        key: value
+        for key, value in {
+            "project": project,
+            "experiment_name": experiment_name,
+        }.items()
+        if value is not None
+    }
     _STATE = _MonitorState(
         enabled=client is not None,
         client=client,
         conf=monitor_conf,
-        namespace=str(monitor_conf.namespace),
+        namespace=str(monitor_conf.server.namespace),
         labels=labels,
     )
 

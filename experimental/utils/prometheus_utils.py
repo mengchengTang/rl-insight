@@ -24,7 +24,7 @@ from typing import Any, Mapping
 import ray
 import requests
 import yaml
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 logger = logging.getLogger(__file__)
@@ -223,12 +223,12 @@ def update_prometheus_config(
     """Rewrite on-disk Prometheus scrape config for ``server_addresses`` and POST ``/-/reload`` on each Ray node.
 
     Args:
-        config: Trainer monitor config (or ``None`` for defaults); used for paths and ``reload.mode``.
+        config: Trainer monitor config (or ``None`` for defaults); used for paths and backend selection.
         server_addresses: ``host:port`` targets (typically the hub ``/metrics`` endpoints).
         job_name: Override scrape job name; default uses ``PROMETHEUS_SCRAPE_JOB_NAME``.
 
     Note:
-        No-op when ``prometheus.reload.mode`` is ``none`` or unsupported; requires a running Ray cluster for reload path.
+        No-op unless ``server.backend`` is ``ray``; requires a running Ray cluster for reload path.
     """
     if not server_addresses:
         logger.warning("No server addresses available to update Prometheus config")
@@ -237,13 +237,13 @@ def update_prometheus_config(
     from ..config.config import load_monitor_config
 
     conf = load_monitor_config(config)
-    mode = str(conf.prometheus.reload.mode).strip().lower()
-    if mode == "none":
-        return
-    if mode != "ray":
+    backend_type = (
+        str(OmegaConf.select(conf, "server.backend") or "ray").strip().lower()
+    )
+    if backend_type != "ray":
         logger.warning(
-            "prometheus.reload.mode is %r; only %r is supported. Skipping Prometheus scrape update and reload.",
-            mode,
+            "server.backend is %r; only %r supports Prometheus scrape update and reload.",
+            backend_type,
             "ray",
         )
         return

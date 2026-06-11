@@ -43,7 +43,7 @@ class MonitorHubActor:
 
     Actor methods run one at a time (no ``max_concurrency``), so hub state updates are serialized.
 
-    On startup it may rewrite the local Prometheus scrape config when ``prometheus.reload.mode`` is ``ray``.
+    On startup it may rewrite the local Prometheus scrape config when ``server.backend`` is ``ray``.
     """
 
     def __init__(
@@ -52,17 +52,18 @@ class MonitorHubActor:
     ) -> None:
         """
         Args:
-            conf: Merged monitor config (trainer dict); expects ``namespace``, ``otel``, ``prometheus`` keys.
+            conf: Merged monitor config (trainer dict); expects ``server``, ``otel``, ``prometheus`` keys.
         """
         self._conf = conf if isinstance(conf, DictConfig) else OmegaConf.create(conf)
-        namespace = str(self._conf.namespace)
+        namespace = str(self._conf.server.namespace)
         self._registry = MetricRegistry(namespace=namespace)
-        te_raw = OmegaConf.select(self._conf, "otel.traces_endpoint")
-        te = str(te_raw).strip() if te_raw is not None else ""
-        self._trace_collector = (
-            OpenTelemetryTraceCollector(namespace=namespace, endpoint=te)
-            if te
-            else None
+        trace_endpoint = (
+            f"http://{self._conf.server.service_ip}:"
+            f"{int(self._conf.otel.otel_port)}/v1/traces"
+        )
+        self._trace_collector = OpenTelemetryTraceCollector(
+            namespace=namespace,
+            endpoint=trace_endpoint,
         )
         self._state_pending: dict[tuple[str, str], dict[str, Any]] = {}
         self._events_applied = 0
@@ -77,16 +78,13 @@ class MonitorHubActor:
 
         scrape_host = self._node_ip
         start_metrics_http_server(self._metrics_port, addr=scrape_host)
-        if (
-            str(OmegaConf.select(self._conf, "prometheus.reload.mode") or "ray")
-            .strip()
-            .lower()
-            == "ray"
-        ):
-            update_prometheus_config(
-                self._conf,
-                [f"{scrape_host}:{self._metrics_port}"],
-            )
+        print(
+            f"tmc debug scrape_host: {scrape_host}, metrics_port: {self._metrics_port}, conf: {self._conf}"
+        )
+        update_prometheus_config(
+            self._conf,
+            [f"{scrape_host}:{self._metrics_port}"],
+        )
 
         listen_desc = scrape_host if scrape_host else "0.0.0.0"
         logger.info(

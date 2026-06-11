@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 from ..utils import MonitorBackend
 
@@ -28,25 +28,18 @@ __all__ = ["create_monitor_client"]
 
 
 def create_monitor_client(conf: DictConfig) -> Any | None:
-    """Factory: pick backend from ``conf.backend`` and return the implementation client.
+    """Factory: pick backend from ``conf.server.backend`` and return the implementation client.
 
     Args:
-        conf: Merged monitor config; must set ``backend.type`` (only ``ray`` is supported).
+        conf: Merged monitor config; must set ``server.backend`` (only ``ray`` is supported).
 
     Returns:
         Backend-specific client, or ``None`` if optional Ray deps fail to import.
 
     Raises:
-        ValueError: Unknown backend or missing ``backend.type``.
+        ValueError: Unknown backend or missing ``server.backend``.
     """
-    backend = conf.backend
-    if OmegaConf.is_config(backend):
-        typ = backend.get("type")
-        if typ is None:
-            raise ValueError("monitor config backend.type is required")
-        backend_type = str(typ)
-    else:
-        backend_type = str(backend)
+    backend_type = str(conf.server.backend)
     if backend_type != MonitorBackend.RAY:
         raise ValueError(f"Unsupported monitor backend: {backend_type!r}")
 

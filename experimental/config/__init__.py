@@ -22,10 +22,12 @@ from .config import (
     MONITOR_SERVICE_CONFIG_DIR,
     MONITOR_HUB_ACTOR_NAME,
     MONITOR_RAY_NAMESPACE,
-    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+    RL_INSIGHT_OTEL_PORT,
+    RL_INSIGHT_PROMETHEUS_CONFIG_FILE,
+    RL_INSIGHT_PROMETHEUS_PORT,
+    RL_INSIGHT_SERVICE_IP,
     load_monitor_config,
     load_server_config_file,
-    resolve_monitor_stack_paths,
 )
 
 __all__ = [
@@ -34,8 +36,10 @@ __all__ = [
     "MONITOR_SERVICE_CONFIG_DIR",
     "MONITOR_HUB_ACTOR_NAME",
     "MONITOR_RAY_NAMESPACE",
-    "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+    "RL_INSIGHT_OTEL_PORT",
+    "RL_INSIGHT_PROMETHEUS_CONFIG_FILE",
+    "RL_INSIGHT_PROMETHEUS_PORT",
+    "RL_INSIGHT_SERVICE_IP",
     "load_monitor_config",
     "load_server_config_file",
-    "resolve_monitor_stack_paths",
 ]
