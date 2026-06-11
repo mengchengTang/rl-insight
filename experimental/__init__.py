@@ -32,12 +32,6 @@ _EXPORTS = {
     "metric_value": ".api",
     "trace_op": ".api",
     "trace_state": ".api",
-    "load_monitor_config": ".config",
-    "load_server_config_file": ".config",
-    "MONITOR_HUB_ACTOR_NAME": ".config",
-    "MONITOR_RAY_NAMESPACE": ".config",
-    "resolve_monitor_stack_paths": ".config",
-    "PROMETHEUS_SCRAPE_JOB_NAME": ".utils",
     "update_prometheus_config": ".utils",
 }
 
