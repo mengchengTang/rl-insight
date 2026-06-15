@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Trainer and server-stack paths/loaders for RL-Insight monitoring."""
+"""Trainer and server-stack config loaders for RL-Insight monitoring."""
 
 from __future__ import annotations
 
@@ -23,69 +23,52 @@ from typing import Any, Mapping
 
 from omegaconf import DictConfig, OmegaConf
 
+from ..utils.constants import (
+    MonitorBackend,
+    MonitorDefaults,
+    MonitorEnv,
+    MonitorPaths,
+)
+
 logger = logging.getLogger(__name__)
-
-MONITOR_CONFIG_DIR = Path(__file__).resolve().parent
-MONITOR_SERVICE_CONFIG_DIR = MONITOR_CONFIG_DIR / "services"
-MONITOR_CONFIG_FILE = MONITOR_SERVICE_CONFIG_DIR / "config.yaml"
-
-MONITOR_HUB_ACTOR_NAME = "RLInsightMonitorHub"
-MONITOR_RAY_NAMESPACE = "rl-insight-monitor"
-
-_DEFAULT_PROM_FILE = str((MONITOR_SERVICE_CONFIG_DIR / "prometheus.yml").resolve())
-_DEFAULT_OTEL_PORT = 4318
-
-RL_INSIGHT_SERVICE_IP = "RL_INSIGHT_SERVICE_IP"
-RL_INSIGHT_PROMETHEUS_PORT = "RL_INSIGHT_PROMETHEUS_PORT"
-RL_INSIGHT_OTEL_PORT = "RL_INSIGHT_OTEL_PORT"
-RL_INSIGHT_PROMETHEUS_CONFIG_FILE = "RL_INSIGHT_PROMETHEUS_CONFIG_FILE"
 
 _TRAINING_MONITOR_DEFAULTS = OmegaConf.create(
     {
         "server": {
-            "namespace": "rl_insight_monitor",
-            "backend": "ray",
+            "namespace": MonitorDefaults.NAMESPACE,
+            "backend": MonitorBackend.RAY,
             "service_ip": "",
         },
         "prometheus": {
-            "metrics_report_port": 9092,
-            "prometheus_port": 9090,
-            "config_file": _DEFAULT_PROM_FILE,
+            "metrics_report_port": MonitorDefaults.METRICS_REPORT_PORT,
+            "prometheus_port": MonitorDefaults.PROMETHEUS_PORT,
+            "config_file": str(MonitorPaths.PROMETHEUS_CONFIG_FILE.resolve()),
         },
         "otel": {
-            "otel_port": _DEFAULT_OTEL_PORT,
+            "otel_port": MonitorDefaults.OTEL_PORT,
         },
     }
 )
 
 __all__ = [
-    "MONITOR_CONFIG_FILE",
-    "MONITOR_CONFIG_DIR",
-    "MONITOR_SERVICE_CONFIG_DIR",
-    "MONITOR_HUB_ACTOR_NAME",
-    "MONITOR_RAY_NAMESPACE",
-    "RL_INSIGHT_SERVICE_IP",
-    "RL_INSIGHT_PROMETHEUS_PORT",
-    "RL_INSIGHT_OTEL_PORT",
-    "RL_INSIGHT_PROMETHEUS_CONFIG_FILE",
     "load_monitor_config",
     "load_server_config_file",
 ]
 
 
 def _apply_env_overrides(conf: DictConfig) -> None:
-    if RL_INSIGHT_SERVICE_IP in os.environ:
-        conf.server.service_ip = str(os.environ[RL_INSIGHT_SERVICE_IP]).strip()
+    if MonitorEnv.SERVICE_IP in os.environ:
+        conf.server.service_ip = str(os.environ[MonitorEnv.SERVICE_IP]).strip()
     else:
         conf.server.service_ip = str(
             OmegaConf.select(conf, "server.service_ip") or ""
         ).strip()
 
-    if otel_port := os.environ.get(RL_INSIGHT_OTEL_PORT):
+    if otel_port := os.environ.get(MonitorEnv.OTEL_PORT):
         conf.otel.otel_port = int(otel_port)
-    if prometheus_port := os.environ.get(RL_INSIGHT_PROMETHEUS_PORT):
+    if prometheus_port := os.environ.get(MonitorEnv.PROMETHEUS_PORT):
         conf.prometheus.prometheus_port = int(prometheus_port)
-    if prometheus_config := os.environ.get(RL_INSIGHT_PROMETHEUS_CONFIG_FILE):
+    if prometheus_config := os.environ.get(MonitorEnv.PROMETHEUS_CONFIG_FILE):
         conf.prometheus.config_file = str(
             Path(prometheus_config).expanduser().resolve()
         )
@@ -129,14 +112,14 @@ def load_server_config_file(config_path: str | Path | None = None) -> DictConfig
         Loaded server config.
     """
     yaml_path = (
-        MONITOR_CONFIG_FILE.resolve()
+        MonitorPaths.CONFIG_FILE.resolve()
         if config_path is None
         else Path(config_path).expanduser().resolve()
     )
     if config_path is None:
         user_conf = OmegaConf.load(str(yaml_path))
     else:
-        default_conf = OmegaConf.load(str(MONITOR_CONFIG_FILE.resolve()))
+        default_conf = OmegaConf.load(str(MonitorPaths.CONFIG_FILE.resolve()))
         user_conf = OmegaConf.merge(default_conf, OmegaConf.load(str(yaml_path)))
     conf = OmegaConf.merge(
         OmegaConf.create({"service_root": str(yaml_path.parent)}),

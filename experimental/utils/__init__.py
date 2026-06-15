@@ -14,13 +14,20 @@
 
 """Monitor utilities: Prometheus helpers, OTLP trace collector, constants."""
 
-from .constants import MonitorBackend, MonitorEventKind
+from .constants import (
+    MonitorBackend,
+    MonitorDefaults,
+    MonitorEnv,
+    MonitorEventKind,
+    MonitorPaths,
+    MonitorRayActor,
+    PrometheusScrape,
+)
 from .opentelemetry_utils import (
     OpenTelemetryTraceCollector,
     resolve_otlp_traces_endpoint,
 )
 from .prometheus_utils import (
-    PROMETHEUS_SCRAPE_JOB_NAME,
     MetricRegistry,
     merge_labels,
     start_metrics_http_server,
@@ -30,9 +37,13 @@ from .prometheus_utils import (
 __all__ = [
     "MetricRegistry",
     "MonitorBackend",
+    "MonitorDefaults",
+    "MonitorEnv",
     "MonitorEventKind",
+    "MonitorPaths",
+    "MonitorRayActor",
     "OpenTelemetryTraceCollector",
-    "PROMETHEUS_SCRAPE_JOB_NAME",
+    "PrometheusScrape",
     "merge_labels",
     "resolve_otlp_traces_endpoint",
     "start_metrics_http_server",

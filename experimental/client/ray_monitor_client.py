@@ -23,7 +23,7 @@ import ray
 from omegaconf import DictConfig
 
 from ..collector.ray_monitor_hub import MonitorHubActor
-from ..config import MONITOR_HUB_ACTOR_NAME, MONITOR_RAY_NAMESPACE
+from ..utils.constants import MonitorRayActor
 from .base import MonitorClient
 
 logger = logging.getLogger(__name__)
@@ -45,8 +45,8 @@ def get_or_create_monitor_hub(conf: DictConfig) -> Any:
         RuntimeError: If Ray is not initialized.
     """
 
-    actor_name = MONITOR_HUB_ACTOR_NAME
-    namespace = MONITOR_RAY_NAMESPACE
+    actor_name = MonitorRayActor.NAME
+    namespace = MonitorRayActor.NAMESPACE
 
     try:
         handle = ray.get_actor(actor_name, namespace=namespace)

@@ -22,7 +22,7 @@ from typing import Any
 import ray
 from omegaconf import DictConfig
 
-from ..config import MONITOR_HUB_ACTOR_NAME, MONITOR_RAY_NAMESPACE
+from ..utils.constants import MonitorRayActor
 from .base import MonitorCollector
 from ..utils import (
     MetricRegistry,
@@ -112,8 +112,8 @@ class MonitorHubActor(MonitorCollector):
             Dict with ``actor_name``, ``namespace`` (Ray placement namespace, not metric prefix), scrape URL, flags.
         """
         return {
-            "actor_name": MONITOR_HUB_ACTOR_NAME,
-            "namespace": MONITOR_RAY_NAMESPACE,
+            "actor_name": MonitorRayActor.NAME,
+            "namespace": MonitorRayActor.NAMESPACE,
             "node_ip": self._node_ip,
             "metrics_endpoint": f"http://{self._node_ip}:{self._metrics_port}/metrics",
             "prometheus_metrics_enabled": True,

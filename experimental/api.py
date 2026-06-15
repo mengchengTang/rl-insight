@@ -29,8 +29,9 @@ from typing import Any, Callable, Generator, Mapping
 from omegaconf import DictConfig
 
 from .client import create_monitor_client
-from .config import RL_INSIGHT_SERVICE_IP, load_monitor_config
+from .config import load_monitor_config
 from .utils import MonitorEventKind
+from .utils.constants import MonitorEnv
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -99,7 +100,7 @@ def init(
     if not str(monitor_conf.server.service_ip).strip():
         logger.error(
             "RL-Insight service IP is required; set %s or server.service_ip in init config.",
-            RL_INSIGHT_SERVICE_IP,
+            MonitorEnv.SERVICE_IP,
         )
         return
     client = create_monitor_client(monitor_conf)

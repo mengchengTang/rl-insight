@@ -23,7 +23,8 @@ from typing import Sequence
 
 from omegaconf import DictConfig, OmegaConf
 
-from ..config import RL_INSIGHT_SERVICE_IP, load_server_config_file
+from ..config import load_server_config_file
+from ..utils.constants import MonitorEnv
 from .dependencies import MissingDependencyError, ServiceStatus
 from .display import (
     active_state_rows,
@@ -282,7 +283,7 @@ class ServerConsole:
             )
         )
         print(
-            f"Training side: set {RL_INSIGHT_SERVICE_IP} to the RL-Insight service IP."
+            f"Training side: set {MonitorEnv.SERVICE_IP} to the RL-Insight service IP."
         )
 
     def print_running_summary(

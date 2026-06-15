@@ -12,34 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Public re-exports for ``experimental.config`` paths and loaders."""
+"""Monitor config loaders."""
 
 from __future__ import annotations
 
-from .config import (
-    MONITOR_CONFIG_DIR,
-    MONITOR_CONFIG_FILE,
-    MONITOR_SERVICE_CONFIG_DIR,
-    MONITOR_HUB_ACTOR_NAME,
-    MONITOR_RAY_NAMESPACE,
-    RL_INSIGHT_OTEL_PORT,
-    RL_INSIGHT_PROMETHEUS_CONFIG_FILE,
-    RL_INSIGHT_PROMETHEUS_PORT,
-    RL_INSIGHT_SERVICE_IP,
-    load_monitor_config,
-    load_server_config_file,
-)
+from .config import load_monitor_config, load_server_config_file
 
 __all__ = [
-    "MONITOR_CONFIG_DIR",
-    "MONITOR_CONFIG_FILE",
-    "MONITOR_SERVICE_CONFIG_DIR",
-    "MONITOR_HUB_ACTOR_NAME",
-    "MONITOR_RAY_NAMESPACE",
-    "RL_INSIGHT_OTEL_PORT",
-    "RL_INSIGHT_PROMETHEUS_CONFIG_FILE",
-    "RL_INSIGHT_PROMETHEUS_PORT",
-    "RL_INSIGHT_SERVICE_IP",
     "load_monitor_config",
     "load_server_config_file",
 ]

@@ -27,10 +27,10 @@ import yaml
 from omegaconf import DictConfig, OmegaConf
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
+from .constants import PrometheusScrape
+
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.WARNING)
-
-PROMETHEUS_SCRAPE_JOB_NAME = "trainer_metrics"
 
 
 @ray.remote(num_cpus=0)
@@ -60,7 +60,6 @@ def _reload_prometheus_on_node(port: int, reload_url: str | None = None) -> None
 
 __all__ = [
     "MetricRegistry",
-    "PROMETHEUS_SCRAPE_JOB_NAME",
     "merge_labels",
     "start_metrics_http_server",
     "update_prometheus_config",
@@ -225,7 +224,7 @@ def update_prometheus_config(
     Args:
         config: Trainer monitor config (or ``None`` for defaults); used for paths and backend selection.
         server_addresses: ``host:port`` targets (typically the hub ``/metrics`` endpoints).
-        job_name: Override scrape job name; default uses ``PROMETHEUS_SCRAPE_JOB_NAME``.
+        job_name: Override scrape job name; default uses ``PrometheusScrape.TRAINER_METRICS_JOB``.
 
     Note:
         No-op unless ``server.backend`` is ``ray``; requires a running Ray cluster for reload path.
@@ -248,7 +247,7 @@ def update_prometheus_config(
         )
         return
 
-    resolved_job = job_name or PROMETHEUS_SCRAPE_JOB_NAME
+    resolved_job = job_name or PrometheusScrape.TRAINER_METRICS_JOB
     prom_file = str(conf.prometheus.config_file)
     reload_port = int(conf.prometheus.prometheus_port)
     reload_url = None
