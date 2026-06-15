@@ -55,11 +55,16 @@ class MonitorHubActor:
             conf: Merged monitor config (trainer dict); expects ``server``, ``otel``, ``prometheus`` keys.
         """
         self._conf = conf if isinstance(conf, DictConfig) else OmegaConf.create(conf)
-        namespace = str(self._conf.server.namespace)
+        namespace = str(
+            OmegaConf.select(self._conf, "server.namespace") or "rl_insight_monitor"
+        )
         self._registry = MetricRegistry(namespace=namespace)
+        service_ip = str(
+            OmegaConf.select(self._conf, "server.service_ip") or ""
+        ).strip()
+        otel_port = int(OmegaConf.select(self._conf, "otel.otel_port") or 4318)
         trace_endpoint = (
-            f"http://{self._conf.server.service_ip}:"
-            f"{int(self._conf.otel.otel_port)}/v1/traces"
+            f"http://{service_ip}:{otel_port}/v1/traces" if service_ip else ""
         )
         self._trace_collector = OpenTelemetryTraceCollector(
             namespace=namespace,
@@ -68,7 +73,9 @@ class MonitorHubActor:
         self._state_pending: dict[tuple[str, str], dict[str, Any]] = {}
         self._events_applied = 0
         self._node_ip = ray.util.get_node_ip_address()
-        self._metrics_port = int(self._conf.prometheus.metrics_report_port)
+        self._metrics_port = int(
+            OmegaConf.select(self._conf, "prometheus.metrics_report_port") or 9092
+        )
         self._event_handlers = {
             MonitorEventKind.COUNTER: self._handle_counter,
             MonitorEventKind.GAUGE: self._handle_gauge,
@@ -78,9 +85,6 @@ class MonitorHubActor:
 
         scrape_host = self._node_ip
         start_metrics_http_server(self._metrics_port, addr=scrape_host)
-        print(
-            f"tmc debug scrape_host: {scrape_host}, metrics_port: {self._metrics_port}, conf: {self._conf}"
-        )
         update_prometheus_config(
             self._conf,
             [f"{scrape_host}:{self._metrics_port}"],

@@ -74,11 +74,12 @@ __all__ = [
 
 
 def _apply_env_overrides(conf: DictConfig) -> None:
-    service_ip = os.environ.get(
-        RL_INSIGHT_SERVICE_IP,
-        str(OmegaConf.select(conf, "server.service_ip") or ""),
-    )
-    conf.server.service_ip = str(service_ip).strip()
+    if RL_INSIGHT_SERVICE_IP in os.environ:
+        conf.server.service_ip = str(os.environ[RL_INSIGHT_SERVICE_IP]).strip()
+    else:
+        conf.server.service_ip = str(
+            OmegaConf.select(conf, "server.service_ip") or ""
+        ).strip()
 
     if otel_port := os.environ.get(RL_INSIGHT_OTEL_PORT):
         conf.otel.otel_port = int(otel_port)
@@ -132,9 +133,14 @@ def load_server_config_file(config_path: str | Path | None = None) -> DictConfig
         if config_path is None
         else Path(config_path).expanduser().resolve()
     )
+    if config_path is None:
+        user_conf = OmegaConf.load(str(yaml_path))
+    else:
+        default_conf = OmegaConf.load(str(MONITOR_CONFIG_FILE.resolve()))
+        user_conf = OmegaConf.merge(default_conf, OmegaConf.load(str(yaml_path)))
     conf = OmegaConf.merge(
         OmegaConf.create({"service_root": str(yaml_path.parent)}),
-        OmegaConf.load(str(yaml_path)),
+        user_conf,
     )
     conf = OmegaConf.create(OmegaConf.to_container(conf, resolve=True))
     del conf.service_root
