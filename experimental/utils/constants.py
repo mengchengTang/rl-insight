@@ -25,9 +25,13 @@ class MonitorPaths:
     """Bundled monitor config and service file locations."""
 
     CONFIG_DIR = _EXPERIMENTAL_DIR / "config"
+    CONFIG_FILE = CONFIG_DIR / "config.yaml"
     SERVICES_DIR = CONFIG_DIR / "services"
-    CONFIG_FILE = SERVICES_DIR / "config.yaml"
-    PROMETHEUS_CONFIG_FILE = SERVICES_DIR / "prometheus.yml"
+    PROMETHEUS_CONFIG_FILE = SERVICES_DIR / "prometheus" / "prometheus.yml"
+    TEMPO_CONFIG_FILE = SERVICES_DIR / "tempo" / "tempo.yaml"
+    GRAFANA_CONFIG_FILE = SERVICES_DIR / "grafana" / "grafana.ini"
+    GRAFANA_PROVISIONING_DIR = SERVICES_DIR / "grafana" / "provisioning"
+    GRAFANA_DASHBOARDS_DIR = SERVICES_DIR / "grafana" / "dashboards"
 
 
 class MonitorRayActor:

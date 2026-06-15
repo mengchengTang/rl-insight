@@ -24,13 +24,10 @@ from .constants import (
     PrometheusScrape,
 )
 from .monitor_config_loader import load_monitor_config, load_server_config_file
-from .opentelemetry_utils import (
-    OpenTelemetryTraceCollector,
-    resolve_otlp_traces_endpoint,
-)
+from .opentelemetry_utils import OpenTelemetryTraceCollector
 from .prometheus_utils import (
     MetricRegistry,
-    merge_labels,
+    PrometheusScrapeUpdater,
     start_metrics_http_server,
     update_prometheus_config,
 )
@@ -45,10 +42,9 @@ __all__ = [
     "MonitorRayActor",
     "OpenTelemetryTraceCollector",
     "PrometheusScrape",
+    "PrometheusScrapeUpdater",
     "load_monitor_config",
     "load_server_config_file",
-    "merge_labels",
-    "resolve_otlp_traces_endpoint",
     "start_metrics_http_server",
     "update_prometheus_config",
 ]

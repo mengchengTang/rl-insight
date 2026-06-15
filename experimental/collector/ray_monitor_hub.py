@@ -117,7 +117,7 @@ class MonitorHubActor(MonitorCollector):
             "node_ip": self._node_ip,
             "metrics_endpoint": f"http://{self._node_ip}:{self._metrics_port}/metrics",
             "prometheus_metrics_enabled": True,
-            "otel_traces_enabled": self._trace_collector is not None,
+            "otel_traces_enabled": self._trace_collector.enabled,
             "events_applied": self._events_applied,
         }
 
@@ -154,7 +154,7 @@ class MonitorHubActor(MonitorCollector):
 
     def _handle_trace(self, event: dict[str, Any]) -> None:
         """Dispatch trace events; state_interval spans are merged before export."""
-        if self._trace_collector is None:
+        if not self._trace_collector.enabled:
             return
         attrs = dict(event.get("attributes") or {})
         if attrs.get("monitor.trace_segment") == "state_interval":
@@ -205,7 +205,7 @@ class MonitorHubActor(MonitorCollector):
         attributes: dict[str, Any],
     ) -> None:
         """Export one root span via OTLP (no-op if collector disabled)."""
-        if self._trace_collector is None:
+        if not self._trace_collector.enabled:
             return
         self._trace_collector.record_span(
             name,

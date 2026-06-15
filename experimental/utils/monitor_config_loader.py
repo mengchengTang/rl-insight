@@ -101,7 +101,7 @@ def load_server_config_file(config_path: str | Path | None = None) -> DictConfig
     """Load server YAML used by ``rl-insight server start/stop``.
 
     Args:
-        config_path: YAML file path; default is the bundled ``config/services/config.yaml``.
+        config_path: YAML file path; default is the bundled ``config/config.yaml``.
 
     Returns:
         Loaded server config.

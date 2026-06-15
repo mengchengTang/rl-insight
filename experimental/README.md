@@ -208,7 +208,7 @@ Training-side environment variables:
 
 ### Server YAML
 
-The default server config lives at [`config/services/config.yaml`](config/services/config.yaml). It controls local service paths, ports, retention, and Grafana provisioning.
+The default server config lives at [`config/config.yaml`](config/config.yaml). Service-specific files live under `config/services/{prometheus,tempo,grafana}/`.
 
 Frequently changed keys:
 
