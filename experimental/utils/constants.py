@@ -18,7 +18,7 @@ from __future__ import annotations
 
 
 class MonitorBackend:
-    """Supported monitor transport implementations (``create_monitor_client`` dispatches on ``type``)."""
+    """Supported trainer-side monitor client backends (``server.backend`` registry keys)."""
 
     RAY = "ray"
 

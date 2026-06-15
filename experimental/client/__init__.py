@@ -12,45 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Monitor client factory."""
+
 from __future__ import annotations
 
 import logging
-from typing import Any
-
-from omegaconf import DictConfig
 
 from ..utils import MonitorBackend
+from .base import create_monitor_client, register_monitor_client
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 __all__ = ["create_monitor_client"]
 
+# Built-in clients. Keys must match ``server.backend`` in trainer config.
+try:
+    from .ray_monitor_client import create_ray_monitor_client
 
-def create_monitor_client(conf: DictConfig) -> Any | None:
-    """Factory: pick backend from ``conf.server.backend`` and return the implementation client.
-
-    Args:
-        conf: Merged monitor config; must set ``server.backend`` (only ``ray`` is supported).
-
-    Returns:
-        Backend-specific client, or ``None`` if optional Ray deps fail to import.
-
-    Raises:
-        ValueError: Unknown backend or missing ``server.backend``.
-    """
-    backend_type = str(conf.server.backend)
-    if backend_type != MonitorBackend.RAY:
-        raise ValueError(f"Unsupported monitor backend: {backend_type!r}")
-
-    try:
-        from .ray_monitor_client import (
-            create_monitor_client as create_ray_monitor_client,
-        )
-    except ImportError as e:
-        logger.warning(
-            "Ray monitor client is unavailable; monitoring is disabled: %s", e
-        )
-        return None
-
-    return create_ray_monitor_client(conf)
+    register_monitor_client(MonitorBackend.RAY, create_ray_monitor_client)
+except ImportError as exc:
+    logger.debug("Ray monitor client is unavailable: %s", exc)
