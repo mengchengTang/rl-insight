@@ -233,7 +233,7 @@ def update_prometheus_config(
         logger.warning("No server addresses available to update Prometheus config")
         return
 
-    from ..config.config import load_monitor_config
+    from .monitor_config_loader import load_monitor_config
 
     conf = load_monitor_config(config)
     backend_type = (

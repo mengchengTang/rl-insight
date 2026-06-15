@@ -23,7 +23,7 @@ from typing import Sequence
 
 from omegaconf import DictConfig, OmegaConf
 
-from ..config import load_server_config_file
+from ..utils.monitor_config_loader import load_server_config_file
 from ..utils.constants import MonitorEnv
 from .dependencies import MissingDependencyError, ServiceStatus
 from .display import (

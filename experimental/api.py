@@ -29,7 +29,7 @@ from typing import Any, Callable, Generator, Mapping
 from omegaconf import DictConfig
 
 from .client import create_monitor_client
-from .config import load_monitor_config
+from .utils.monitor_config_loader import load_monitor_config
 from .utils import MonitorEventKind
 from .utils.constants import MonitorEnv
 
