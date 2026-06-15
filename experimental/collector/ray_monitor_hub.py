@@ -20,9 +20,10 @@ import logging
 from typing import Any
 
 import ray
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 from ..config import MONITOR_HUB_ACTOR_NAME, MONITOR_RAY_NAMESPACE
+from .base import MonitorCollector
 from ..utils import (
     MetricRegistry,
     MonitorEventKind,
@@ -38,7 +39,7 @@ __all__ = ["MonitorHubActor"]
 
 
 @ray.remote
-class MonitorHubActor:
+class MonitorHubActor(MonitorCollector):
     """Ray detached actor: receives monitor events from trainers, serves ``/metrics``, optional OTLP traces.
 
     Actor methods run one at a time (no ``max_concurrency``), so hub state updates are serialized.
@@ -46,36 +47,30 @@ class MonitorHubActor:
     On startup it may rewrite the local Prometheus scrape config when ``server.backend`` is ``ray``.
     """
 
-    def __init__(
-        self,
-        conf: dict[str, Any] | DictConfig,
-    ) -> None:
+    def __init__(self, conf: DictConfig) -> None:
         """
         Args:
-            conf: Merged monitor config (trainer dict); expects ``server``, ``otel``, ``prometheus`` keys.
+            conf: Merged monitor config with ``server``, ``otel``, and ``prometheus`` sections.
         """
-        self._conf = conf if isinstance(conf, DictConfig) else OmegaConf.create(conf)
-        namespace = str(
-            OmegaConf.select(self._conf, "server.namespace") or "rl_insight_monitor"
+        self._conf = conf
+
+        namespace = str(self._conf.server.namespace)
+        service_ip = str(self._conf.server.service_ip).strip()
+        trace_endpoint = (
+            f"http://{service_ip}:{int(self._conf.otel.otel_port)}/v1/traces"
+            if service_ip
+            else ""
         )
         self._registry = MetricRegistry(namespace=namespace)
-        service_ip = str(
-            OmegaConf.select(self._conf, "server.service_ip") or ""
-        ).strip()
-        otel_port = int(OmegaConf.select(self._conf, "otel.otel_port") or 4318)
-        trace_endpoint = (
-            f"http://{service_ip}:{otel_port}/v1/traces" if service_ip else ""
-        )
         self._trace_collector = OpenTelemetryTraceCollector(
             namespace=namespace,
             endpoint=trace_endpoint,
         )
+
         self._state_pending: dict[tuple[str, str], dict[str, Any]] = {}
         self._events_applied = 0
         self._node_ip = ray.util.get_node_ip_address()
-        self._metrics_port = int(
-            OmegaConf.select(self._conf, "prometheus.metrics_report_port") or 9092
-        )
+        self._metrics_port = int(self._conf.prometheus.metrics_report_port)
         self._event_handlers = {
             MonitorEventKind.COUNTER: self._handle_counter,
             MonitorEventKind.GAUGE: self._handle_gauge,
@@ -83,19 +78,13 @@ class MonitorHubActor:
             MonitorEventKind.TRACE: self._handle_trace,
         }
 
-        scrape_host = self._node_ip
-        start_metrics_http_server(self._metrics_port, addr=scrape_host)
-        update_prometheus_config(
-            self._conf,
-            [f"{scrape_host}:{self._metrics_port}"],
-        )
-
-        listen_desc = scrape_host if scrape_host else "0.0.0.0"
+        start_metrics_http_server(self._metrics_port, addr=self._node_ip)
+        update_prometheus_config(self._conf, [f"{self._node_ip}:{self._metrics_port}"])
         logger.info(
             "MonitorHubActor HTTP bind %s:%s, Prometheus scrape target %s:%s",
-            listen_desc,
+            self._node_ip,
             self._metrics_port,
-            scrape_host,
+            self._node_ip,
             self._metrics_port,
         )
 

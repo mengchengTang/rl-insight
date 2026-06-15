@@ -20,7 +20,7 @@ import logging
 from typing import Any, cast
 
 import ray
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 from ..collector.ray_monitor_hub import MonitorHubActor
 from ..config import MONITOR_HUB_ACTOR_NAME, MONITOR_RAY_NAMESPACE
@@ -63,9 +63,7 @@ def get_or_create_monitor_hub(conf: DictConfig) -> Any:
 
     try:
         actor_cls = cast(Any, MonitorHubActor)
-        return actor_cls.options(**actor_options).remote(
-            OmegaConf.to_container(conf, resolve=True)
-        )
+        return actor_cls.options(**actor_options).remote(conf)
     except ValueError:
         logger.info(
             "Monitor hub actor %r was created concurrently; connecting to it.",
