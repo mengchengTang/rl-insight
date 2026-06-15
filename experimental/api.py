@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 __all__ = [
-    "close",
+    "finish",
     "init",
     "metric_count",
     "metric_distribution",
@@ -120,7 +120,7 @@ def init(
     )
 
 
-def close() -> None:
+def finish() -> None:
     """Clear in-process monitor state so further emits are no-ops.
 
     Does not stop the hub HTTP server or kill the detached Ray actor.

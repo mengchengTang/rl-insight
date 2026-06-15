@@ -25,7 +25,7 @@ from typing import Any
 
 
 _EXPORTS = {
-    "close": ".api",
+    "finish": ".api",
     "init": ".api",
     "metric_count": ".api",
     "metric_distribution": ".api",

@@ -130,7 +130,7 @@ Trace helpers:
 
 - `trace_state(state_name, state_lane_id=None, **labels)` records a runtime state interval. Use a stable `state_lane_id` such as a Ray worker id, replica id, or role name to group intervals in trace UIs.
 - `trace_op(name=None, extra_labels=None, **static_labels)` decorates synchronous functions and records one duration span per call.
-- `close()` resets in-process monitor state. It does not stop the detached Ray hub or server stack.
+- `finish()` resets in-process monitor state. It does not stop the detached Ray hub or server stack.
 
 ## Server Stack
 
