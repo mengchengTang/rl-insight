@@ -157,8 +157,7 @@ class ServerCommands:
         if backend != "local":
             print(
                 f"Server backend {backend!r} is external; nothing to {action}. "
-                "Use the compose files under experimental/config/services/docker-compose-dev "
-                "for development-only Docker Compose startup."
+                "Manage the observability stack with your external deployment."
             )
             return False
 
