@@ -54,10 +54,6 @@ __all__ = [
 def _apply_env_overrides(conf: DictConfig) -> None:
     if MonitorEnv.SERVICE_IP in os.environ:
         conf.server.service_ip = str(os.environ[MonitorEnv.SERVICE_IP]).strip()
-    else:
-        conf.server.service_ip = str(
-            OmegaConf.select(conf, "server.service_ip") or ""
-        ).strip()
 
     if otel_port := os.environ.get(MonitorEnv.OTEL_PORT):
         conf.otel.otel_port = int(otel_port)
