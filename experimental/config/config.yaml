@@ -22,9 +22,10 @@ tempo:
 
 grafana:
   enable: true
-  min_version: 9.0.0
-  install_version: 11.6.3
+  min_version: 13.0.0
+  install_version: 13.0.0
   port: 3000
   config_file: ${service_root}/services/grafana/grafana.ini
   provisioning_dir: ${service_root}/services/grafana/provisioning
   dashboards_dir: ${service_root}/services/grafana/dashboards
+
