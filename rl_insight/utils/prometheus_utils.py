@@ -241,12 +241,6 @@ class PrometheusScrapeUpdater:
         if labels is None:
             return [{"targets": server_addresses}]
 
-        if len(labels) != len(server_addresses):
-            raise ValueError(
-                "labels length must match server_addresses length: "
-                f"{len(labels)} != {len(server_addresses)}"
-            )
-
         static_configs: list[dict[str, Any]] = []
         for address, target_labels in zip(server_addresses, labels):
             static_config: dict[str, Any] = {"targets": [address]}
@@ -275,6 +269,11 @@ class PrometheusScrapeUpdater:
         if not server_addresses:
             logger.warning("No server addresses available to update Prometheus config")
             return
+        if labels is not None and len(labels) != len(server_addresses):
+            raise ValueError(
+                "labels length must match server_addresses length: "
+                f"{len(labels)} != {len(server_addresses)}"
+            )
         if self._backend != "ray":
             logger.warning(
                 "server.backend is %r; only %r supports Prometheus scrape update and reload.",
@@ -289,9 +288,7 @@ class PrometheusScrapeUpdater:
             scrape_configs = prometheus_data.setdefault("scrape_configs", [])
             new_job = {
                 "job_name": self._job_name,
-                "static_configs": self._build_static_configs(
-                    server_addresses, labels
-                ),
+                "static_configs": self._build_static_configs(server_addresses, labels),
             }
             for i, sc in enumerate(scrape_configs):
                 if sc.get("job_name") == self._job_name:
