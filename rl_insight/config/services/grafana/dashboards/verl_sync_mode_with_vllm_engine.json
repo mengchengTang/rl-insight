@@ -19404,7 +19404,7 @@
             "kind": "RowsLayoutRow",
             "spec": {
               "title": "vllm engine metric",
-              "collapse": false,
+              "collapse": true,
               "layout": {
                 "kind": "GridLayout",
                 "spec": {
