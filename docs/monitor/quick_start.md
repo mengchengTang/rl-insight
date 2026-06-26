@@ -82,7 +82,7 @@ import ray
 import rl_insight as insight
 
 ray.init(namespace="rl-insight-monitor")
-insight.init(project="verl", experiment_name="readme_demo")
+insight.init(project="verl", experiment_name="quick_start_demo")
 
 step = 0
 labels = {"worker": "trainer_0"}
@@ -117,7 +117,7 @@ username: admin
 password: admin
 ```
 
-After login, open **Dashboards** from the left navigation and choose `RL-Insight`. For the sample script in this guide, select the `readme_demo` dashboard and set the time range to a recent window such as **Last 5 minutes** while the script is still running. For framework-specific runs, open the dashboard that matches that integration or experiment.
+After login, open **Dashboards** from the left navigation and choose `RL-Insight`. For the sample script in this guide, select the `quick_start_demo` dashboard and set the time range to a recent window such as **Last 5 minutes** while the script is still running. For framework-specific runs, open the dashboard that matches that integration or experiment.
 
 The bundled provisioning config loads Prometheus and Tempo datasources and dashboard JSON files from:
 
@@ -125,7 +125,7 @@ The bundled provisioning config loads Prometheus and Tempo datasources and dashb
 rl_insight/config/services/grafana/dashboards
 ```
 
-If you add or update a dashboard JSON file such as `readme_demo.json`, place it in that dashboards directory before starting Grafana, or restart the stack so Grafana provisions the latest file. Prometheus metrics and Tempo traces are persisted under `~/.rl-insight/data` by default. Stopping the server does not delete collected data.
+If you add or update a dashboard JSON file such as `quick_start_demo.json`, place it in that dashboards directory before starting Grafana, or restart the stack so Grafana provisions the latest file. Prometheus metrics and Tempo traces are persisted under `~/.rl-insight/data` by default. Stopping the server does not delete collected data.
 
 ## 6. Stop Services
 
