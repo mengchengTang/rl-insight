@@ -33,6 +33,7 @@ import yaml
 from omegaconf import DictConfig, OmegaConf
 
 from .catalog import DEFAULT_STATE_ROOT, STATE_FILE
+from .network import format_host_port, local_addresses
 from .dependencies import (
     MissingDependencyError,
     DependencyManager,
@@ -382,6 +383,7 @@ def _render_prometheus_config(conf: DictConfig, runtime_dir: Path) -> Path:
     target.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
     return target
 
+
 def _render_tempo_config(
     conf: DictConfig, runtime_dir: Path, data_root: Path, tempo_version: str
 ) -> Path:
@@ -392,7 +394,9 @@ def _render_tempo_config(
     tempo_data = _service_specific_data_dir(conf, "tempo", data_root)
     tempo_data.mkdir(parents=True, exist_ok=True)
 
-    data.setdefault("server", {})["http_listen_port"] = query_port
+    server_data = data.setdefault("server", {})
+    server_data["http_listen_port"] = query_port
+    server_data["http_listen_address"] = local_addresses()["bind"]
     receiver = (
         data.setdefault("distributor", {})
         .setdefault("receivers", {})
@@ -400,7 +404,7 @@ def _render_tempo_config(
         .setdefault("protocols", {})
         .setdefault("http", {})
     )
-    receiver["endpoint"] = f"0.0.0.0:{otlp_port}"
+    receiver["endpoint"] = format_host_port(local_addresses()["bind"], otlp_port)
     trace = data.setdefault("storage", {}).setdefault("trace", {})
     trace.setdefault("backend", "local")
     trace.setdefault("local", {})["path"] = str((tempo_data / "traces").resolve())
@@ -435,6 +439,7 @@ def _render_grafana_config(
     for path in (grafana_data, logs_dir, plugins_dir):
         path.mkdir(parents=True, exist_ok=True)
 
+    parser.set("server", "http_addr", local_addresses()["bind"])
     parser.set("server", "http_port", str(int(OmegaConf.select(conf, "grafana.port"))))
     parser.set("paths", "provisioning", str((runtime_dir / "provisioning").resolve()))
     parser.set("paths", "data", str(grafana_data.resolve()))
@@ -466,7 +471,8 @@ def _render_grafana_provisioning(
                 "type": "prometheus",
                 "access": "proxy",
                 "isDefault": True,
-                "url": f"http://127.0.0.1:{prometheus_port}",
+                "url": "http://"
+                + format_host_port(local_addresses()["loopback"], prometheus_port),
                 "editable": True,
             }
         )
@@ -479,7 +485,8 @@ def _render_grafana_provisioning(
                 "type": "tempo",
                 "access": "proxy",
                 "isDefault": not datasources,
-                "url": f"http://127.0.0.1:{tempo_query_port}",
+                "url": "http://"
+                + format_host_port(local_addresses()["loopback"], tempo_query_port),
                 "editable": True,
             }
         )
@@ -557,7 +564,10 @@ def _service_command(
         command = [
             str(binary),
             f"--config.file={runtime_files.prometheus_config}",
-            f"--web.listen-address=0.0.0.0:{int(conf.prometheus.prometheus_port)}",
+            "--web.listen-address="
+            + format_host_port(
+                local_addresses()["bind"], conf.prometheus.prometheus_port
+            ),
             "--web.enable-lifecycle",
             f"--storage.tsdb.path={data_dir.resolve()}",
         ]

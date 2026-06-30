@@ -84,54 +84,44 @@ class ServerServiceManager:
     def stop(self) -> tuple[int, list[dict[str, Any]]]:
         return self.runtime.stop()
 
-    def service_urls(self, host: str, traces_endpoint: str) -> list[dict[str, str]]:
+    def service_rows(self) -> list[dict[str, str]]:
         rows: list[dict[str, str]] = []
         if bool(OmegaConf.select(self.conf, "server.enable", default=True)):
-            endpoint = f"http://{host}:{int(self.conf.server.port)}" if host else ""
             rows.append(
                 {
                     "service": "RL-Insight server",
-                    "endpoint": endpoint,
+                    "port": str(int(self.conf.server.port)),
                     "purpose": "service control and discovery",
                 }
             )
         if bool(OmegaConf.select(self.conf, "prometheus.enable", default=True)):
-            endpoint = (
-                f"http://{host}:{int(self.conf.prometheus.prometheus_port)}"
-                if host
-                else ""
-            )
             rows.append(
                 {
                     "service": "Prometheus",
-                    "endpoint": endpoint,
+                    "port": str(int(self.conf.prometheus.prometheus_port)),
                     "purpose": "metrics UI",
                 }
             )
         if bool(OmegaConf.select(self.conf, "tempo.enable", default=True)):
-            tempo_endpoint = (
-                f"http://{host}:{int(self.conf.tempo.query_port)}" if host else ""
-            )
             rows.extend(
                 [
                     {
                         "service": "Tempo",
-                        "endpoint": tempo_endpoint,
+                        "port": str(int(self.conf.tempo.query_port)),
                         "purpose": "trace query API",
                     },
                     {
                         "service": "OTLP traces",
-                        "endpoint": traces_endpoint,
+                        "port": str(int(self.conf.otel.otel_port)),
                         "purpose": "trainer export URL",
                     },
                 ]
             )
         if bool(OmegaConf.select(self.conf, "grafana.enable", default=True)):
-            endpoint = f"http://{host}:{int(self.conf.grafana.port)}" if host else ""
             rows.append(
                 {
                     "service": "Grafana",
-                    "endpoint": endpoint,
+                    "port": str(int(self.conf.grafana.port)),
                     "purpose": "dashboard UI",
                 }
             )

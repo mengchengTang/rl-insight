@@ -31,6 +31,7 @@ from omegaconf import DictConfig, OmegaConf
 from ..utils.constants import MonitorEnv, MonitorServer, PrometheusScrape
 from ..utils.monitor_config_loader import load_server_config_file
 from ..utils.prometheus_utils import PrometheusTarget, PrometheusTargetStore
+from .network import local_addresses
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def get_server_services() -> dict[str, Any]:
         return {}
 
     url = f"{base_url}{MonitorServer.API_PREFIX}/services"
-    last_error = None
+    last_error: requests.RequestException | ValueError | None = None
     for attempt in range(MonitorServer.SERVICE_DISCOVERY_RETRIES):
         try:
             response = requests.get(
@@ -60,18 +61,20 @@ def get_server_services() -> dict[str, Any]:
             )
             response.raise_for_status()
             data = response.json()
-            if isinstance(data, dict):
-                return data
-            last_error = ValueError(
-                f"services response must be an object, got {type(data).__name__}"
-            )
+            if not isinstance(data, dict):
+                raise ValueError(
+                    f"services response must be an object, got {type(data).__name__}"
+                )
+            return data
         except (requests.RequestException, ValueError) as exc:
             last_error = exc
 
         if attempt + 1 < MonitorServer.SERVICE_DISCOVERY_RETRIES:
             time.sleep(MonitorServer.SERVICE_DISCOVERY_RETRY_DELAY_SECONDS)
 
-    logger.error("Failed to fetch RL-Insight server services at %s: %s", url, last_error)
+    logger.error(
+        "Failed to fetch RL-Insight server services at %s: %s", url, last_error
+    )
     return {}
 
 
@@ -130,7 +133,9 @@ def create_app(conf: DictConfig) -> FastAPI:
         # Apply request-level labels first, then let each target override them.
         for item in raw_targets:
             if isinstance(item, str):
-                targets.append(PrometheusTarget(target=item, labels=dict(default_labels)))
+                targets.append(
+                    PrometheusTarget(target=item, labels=dict(default_labels))
+                )
                 continue
             if isinstance(item, dict):
                 item_labels = item.get("labels") or {}
@@ -182,7 +187,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     conf = load_server_config_file(args.config)
     port = int(OmegaConf.select(conf, "server.port", default=18080))
-    uvicorn.run(create_app(conf), host="0.0.0.0", port=port)
+    uvicorn.run(create_app(conf), host=local_addresses()["bind"], port=port)
     return 0
 
 

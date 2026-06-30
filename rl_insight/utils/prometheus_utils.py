@@ -30,6 +30,7 @@ from omegaconf import DictConfig, OmegaConf
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 from .constants import MonitorEnv, MonitorPaths, PrometheusScrape
+from ..server.network import format_host_port, local_addresses
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.WARNING)
@@ -126,7 +127,11 @@ class PrometheusTargetStore:
         }
 
     def reload(self) -> bool:
-        url = f"http://127.0.0.1:{self.prometheus_port}/-/reload"
+        url = (
+            "http://"
+            + format_host_port(local_addresses()["loopback"], self.prometheus_port)
+            + "/-/reload"
+        )
         response = requests.post(url, timeout=5)
         response.raise_for_status()
         return True
@@ -289,7 +294,7 @@ def update_prometheus_config(
 
     The RL-Insight server writes these targets into the runtime Prometheus
     config and reloads the managed Prometheus process. ``server_addresses``
-    should contain scrape targets in ``host:port`` form, not full URLs.
+    should contain scrape targets in ``host:port`` or ``[ipv6]:port`` form, not full URLs.
 
     Args:
         server_addresses: Prometheus scrape targets exposed by trainer-side
@@ -311,8 +316,7 @@ def update_prometheus_config(
     base_url = str(os.environ.get(MonitorEnv.SERVER_URL, "")).strip().rstrip("/")
     if not base_url:
         logger.error(
-            "RL-Insight server URL is required; set "
-            "%s to register Prometheus targets",
+            "RL-Insight server URL is required; set %s to register Prometheus targets",
             MonitorEnv.SERVER_URL,
         )
         return

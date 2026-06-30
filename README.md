@@ -95,7 +95,7 @@ insight.init(
         "server": {
             "namespace": "rl_insight_monitor",
             "backend": "ray",
-            "url": "http://10.0.0.8:18080",
+            "url": "http://<server-ip>:18080",
         },
         "prometheus": {
             "metrics_report_port": 9092,

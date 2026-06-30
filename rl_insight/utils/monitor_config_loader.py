@@ -45,7 +45,6 @@ __all__ = [
 ]
 
 
-
 def load_monitor_config(
     config: Mapping[str, Any] | DictConfig | None = None,
 ) -> DictConfig:

@@ -25,7 +25,7 @@ from omegaconf import DictConfig
 from ..utils.constants import MonitorRayActor
 from .base import MonitorCollector
 from ..server.http_api import get_server_services
-from ..server.network import service_url_from_server_url
+from ..server.network import format_host_port, service_url_from_server_url
 from ..utils import (
     MetricRegistry,
     MonitorEventKind,
@@ -81,7 +81,7 @@ class MonitorHubActor(MonitorCollector):
         }
 
         start_metrics_http_server(self._metrics_port, addr=self._node_ip)
-        update_prometheus_config([f"{self._node_ip}:{self._metrics_port}"])
+        update_prometheus_config([format_host_port(self._node_ip, self._metrics_port)])
         logger.info(
             "MonitorHubActor HTTP bind %s:%s, Prometheus scrape target %s:%s",
             self._node_ip,
@@ -117,7 +117,11 @@ class MonitorHubActor(MonitorCollector):
             "actor_name": MonitorRayActor.NAME,
             "namespace": MonitorRayActor.NAMESPACE,
             "node_ip": self._node_ip,
-            "metrics_endpoint": f"http://{self._node_ip}:{self._metrics_port}/metrics",
+            "metrics_endpoint": (
+                "http://"
+                + format_host_port(self._node_ip, self._metrics_port)
+                + "/metrics"
+            ),
             "prometheus_metrics_enabled": True,
             "otel_traces_enabled": self._trace_collector.enabled,
             "events_applied": self._events_applied,
