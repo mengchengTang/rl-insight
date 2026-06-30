@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import argparse
-import socket
 import sys
 from typing import Sequence
 
@@ -33,6 +32,7 @@ from .display import (
     format_panel,
     format_table,
 )
+from .network import local_ipv4
 from .runtime import StartedService
 from .services import ServerServiceManager
 
@@ -95,7 +95,7 @@ class ServerCommands:
         return 0 if not manager.missing_dependencies(statuses) else 1
 
     def start(self, args: argparse.Namespace) -> int:
-        """Start local Prometheus, Tempo, and Grafana processes."""
+        """Start local RL-Insight server, Prometheus, Tempo, and Grafana processes."""
         conf = self._load_config(args)
         if not self._stack_management_enabled(conf, action="start"):
             return 0
@@ -141,7 +141,7 @@ class ServerCommands:
         return manager.wait(stack, attach_logs=args.attach_logs)
 
     def stop(self, args: argparse.Namespace) -> int:
-        """Stop local Prometheus, Tempo, and Grafana processes."""
+        """Stop local RL-Insight server, Prometheus, Tempo, and Grafana processes."""
         conf = self._load_config(args)
         if not self._stack_management_enabled(conf, action="stop"):
             return 0
@@ -187,19 +187,19 @@ class ServerConfigValidator:
 
     def validate_start(self, conf: DictConfig) -> str:
         """Validate required start fields and return the trainer OTLP endpoint."""
+        if bool(OmegaConf.select(conf, "server.enable", default=True)):
+            self._require_int(conf, "server.port", "RL-Insight server port")
+
         if bool(OmegaConf.select(conf, "prometheus.enable", default=True)):
             self._require_int(
                 conf, "prometheus.prometheus_port", "Prometheus HTTP port"
             )
-            self._require_field(
-                conf, "prometheus.config_file", "Prometheus config file"
-            )
 
         traces_endpoint = ""
         if bool(OmegaConf.select(conf, "tempo.enable", default=True)):
-            host = _server_host()
+            host = local_ipv4()
             otel_port = self._require_int(conf, "otel.otel_port", "OTLP HTTP port")
-            traces_endpoint = f"http://{host}:{otel_port}/v1/traces"
+            traces_endpoint = f"http://{host}:{otel_port}/v1/traces" if host else ""
             self._require_int(conf, "tempo.query_port", "Tempo query port")
             self._require_field(conf, "tempo.config_file", "Tempo config file")
 
@@ -276,7 +276,7 @@ class ServerConsole:
         conf: DictConfig,
         traces_endpoint: str,
     ) -> None:
-        host = _server_host()
+        host = local_ipv4()
         trainer_url = traces_endpoint.rstrip("/")
 
         print(format_logo())
@@ -284,7 +284,7 @@ class ServerConsole:
             format_panel(
                 "[RL-INSIGHT] Server Stack",
                 [
-                    ("Node", host),
+                    ("Node", host or ""),
                     ("Status", "starting"),
                     ("Logs", "enabled"),
                 ],
@@ -299,9 +299,6 @@ class ServerConsole:
                 ],
             )
         )
-        print(
-            f"Training side: set {MonitorEnv.SERVICE_IP} to the RL-Insight service IP."
-        )
 
     def print_running_summary(
         self,
@@ -309,10 +306,11 @@ class ServerConsole:
         traces_endpoint: str,
         services: Sequence[StartedService],
     ) -> None:
-        host = _server_host()
+        host = local_ipv4()
         grafana_url = ""
         if bool(OmegaConf.select(conf, "grafana.enable", default=True)):
-            grafana_url = f"http://{host}:{int(conf.grafana.port)}"
+            grafana_url = f"http://{host}:{int(conf.grafana.port)}" if host else ""
+        server_url = _server_url(conf, host)
         trainer_url = traces_endpoint.rstrip("/")
         rows = [
             [service.name, service.process.pid, service.log_file]
@@ -329,23 +327,13 @@ class ServerConsole:
             )
         )
         if grafana_url:
+            if server_url:
+                print(f"Training side: export {MonitorEnv.SERVER_URL}={server_url}")
             print(f"View monitoring dashboard: {grafana_url}")
 
 
-def _server_host() -> str:
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-            sock.connect(("8.8.8.8", 80))
-            host = sock.getsockname()[0]
-            if host and not host.startswith("127."):
-                return host
-    except OSError:
-        pass
+def _server_url(conf: DictConfig, host: str) -> str:
+    if not host or not bool(OmegaConf.select(conf, "server.enable", default=True)):
+        return ""
+    return f"http://{host}:{int(conf.server.port)}"
 
-    try:
-        host = socket.gethostbyname(socket.gethostname())
-        if host and not host.startswith("127."):
-            return host
-    except OSError:
-        pass
-    return "127.0.0.1"

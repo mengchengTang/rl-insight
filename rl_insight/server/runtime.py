@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Local process runtime for Prometheus, Tempo, and Grafana."""
+"""Local process runtime for RL-Insight server, Prometheus, Tempo, and Grafana."""
 
 from __future__ import annotations
 
@@ -44,6 +44,7 @@ class RuntimeFiles:
     prometheus_config: Path
     tempo_config: Path
     grafana_config: Path
+    server_config: Path
     grafana_homepath: Path | None
 
 
@@ -82,15 +83,18 @@ class LocalServiceRuntime:
         grafana_binary: Path | None = None,
         tempo_version: str = "",
     ) -> RuntimeFiles:
-        """Render local runtime config files for Tempo and Grafana."""
+        """Render local runtime config files for managed services."""
         runtime_dir = _runtime_dir_from_config(self.conf)
         data_dir = _service_data_root(self.conf, self.install_root)
         runtime_dir.mkdir(parents=True, exist_ok=True)
         data_dir.mkdir(parents=True, exist_ok=True)
+        runtime_config = _write_runtime_config(self.conf, runtime_dir)
 
         prometheus_config = Path(
             str(OmegaConf.select(self.conf, "prometheus.config_file"))
         )
+        if bool(OmegaConf.select(self.conf, "prometheus.enable", default=True)):
+            prometheus_config = _render_prometheus_config(self.conf, runtime_dir)
         tempo_config = Path(str(OmegaConf.select(self.conf, "tempo.config_file")))
         grafana_config = Path(str(OmegaConf.select(self.conf, "grafana.config_file")))
         if bool(OmegaConf.select(self.conf, "tempo.enable", default=True)):
@@ -106,6 +110,7 @@ class LocalServiceRuntime:
             prometheus_config=prometheus_config,
             tempo_config=tempo_config,
             grafana_config=grafana_config,
+            server_config=runtime_config,
             grafana_homepath=self.dependencies.resolve_grafana_homepath(grafana_binary),
         )
 
@@ -141,6 +146,26 @@ class LocalServiceRuntime:
                     name, binary, self.conf, runtime_files, self.install_root
                 )
                 log_file = log_dir / f"{name}.log"
+                process = _spawn_service(name, command, log_file)
+                started.append(
+                    StartedService(
+                        name=name,
+                        process=process,
+                        command=command,
+                        log_file=log_file,
+                    )
+                )
+                time.sleep(0.3)
+                return_code = process.poll()
+                if return_code is not None:
+                    raise RuntimeError(
+                        f"{name} exited during startup with code {return_code}. "
+                        f"See log: {log_file}"
+                    )
+            if _server_enabled(self.conf):
+                name = "rl-insight-server"
+                command = _server_command(self.conf, runtime_files)
+                log_file = log_dir / "rl-insight-server.log"
                 process = _spawn_service(name, command, log_file)
                 started.append(
                     StartedService(
@@ -261,6 +286,26 @@ def _runtime_dir_from_config(conf: DictConfig) -> Path:
     return (DEFAULT_STATE_ROOT / "runtime").resolve()
 
 
+def _write_runtime_config(conf: DictConfig, runtime_dir: Path) -> Path:
+    target = runtime_dir / "server.yaml"
+    OmegaConf.save(config=conf, f=str(target))
+    return target
+
+
+def _server_enabled(conf: DictConfig) -> bool:
+    return bool(OmegaConf.select(conf, "server.enable", default=True))
+
+
+def _server_command(conf: DictConfig, runtime_files: RuntimeFiles) -> list[str]:
+    return [
+        sys.executable,
+        "-m",
+        "rl_insight.server.http_api",
+        "--config",
+        str(runtime_files.server_config),
+    ]
+
+
 def load_active_state(state_file: Path) -> dict[str, Any] | None:
     """Return state only when at least one recorded process is still running."""
     state = _read_state(state_file)
@@ -329,6 +374,13 @@ def _service_data_root(conf: DictConfig, _install_root: Path) -> Path:
         return Path(str(raw)).expanduser().resolve()
     return (DEFAULT_STATE_ROOT / "data").resolve()
 
+
+def _render_prometheus_config(conf: DictConfig, runtime_dir: Path) -> Path:
+    target = runtime_dir / "prometheus.yml"
+    source = Path(str(OmegaConf.select(conf, "prometheus.config_file")))
+    data = yaml.safe_load(source.read_text(encoding="utf-8")) or {}
+    target.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    return target
 
 def _render_tempo_config(
     conf: DictConfig, runtime_dir: Path, data_root: Path, tempo_version: str

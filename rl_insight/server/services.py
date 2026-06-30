@@ -86,20 +86,37 @@ class ServerServiceManager:
 
     def service_urls(self, host: str, traces_endpoint: str) -> list[dict[str, str]]:
         rows: list[dict[str, str]] = []
+        if bool(OmegaConf.select(self.conf, "server.enable", default=True)):
+            endpoint = f"http://{host}:{int(self.conf.server.port)}" if host else ""
+            rows.append(
+                {
+                    "service": "RL-Insight server",
+                    "endpoint": endpoint,
+                    "purpose": "service control and discovery",
+                }
+            )
         if bool(OmegaConf.select(self.conf, "prometheus.enable", default=True)):
+            endpoint = (
+                f"http://{host}:{int(self.conf.prometheus.prometheus_port)}"
+                if host
+                else ""
+            )
             rows.append(
                 {
                     "service": "Prometheus",
-                    "endpoint": f"http://{host}:{int(self.conf.prometheus.prometheus_port)}",
+                    "endpoint": endpoint,
                     "purpose": "metrics UI",
                 }
             )
         if bool(OmegaConf.select(self.conf, "tempo.enable", default=True)):
+            tempo_endpoint = (
+                f"http://{host}:{int(self.conf.tempo.query_port)}" if host else ""
+            )
             rows.extend(
                 [
                     {
                         "service": "Tempo",
-                        "endpoint": f"http://{host}:{int(self.conf.tempo.query_port)}",
+                        "endpoint": tempo_endpoint,
                         "purpose": "trace query API",
                     },
                     {
@@ -110,10 +127,11 @@ class ServerServiceManager:
                 ]
             )
         if bool(OmegaConf.select(self.conf, "grafana.enable", default=True)):
+            endpoint = f"http://{host}:{int(self.conf.grafana.port)}" if host else ""
             rows.append(
                 {
                     "service": "Grafana",
-                    "endpoint": f"http://{host}:{int(self.conf.grafana.port)}",
+                    "endpoint": endpoint,
                     "purpose": "dashboard UI",
                 }
             )
