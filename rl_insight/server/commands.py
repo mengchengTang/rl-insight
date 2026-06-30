@@ -95,7 +95,7 @@ class ServerCommands:
         return 0 if not manager.missing_dependencies(statuses) else 1
 
     def start(self, args: argparse.Namespace) -> int:
-        """Start local Prometheus, Tempo, and Grafana processes."""
+        """Start local RL-Insight server, Prometheus, Tempo, and Grafana processes."""
         conf = self._load_config(args)
         if not self._stack_management_enabled(conf, action="start"):
             return 0
@@ -141,7 +141,7 @@ class ServerCommands:
         return manager.wait(stack, attach_logs=args.attach_logs)
 
     def stop(self, args: argparse.Namespace) -> int:
-        """Stop local Prometheus, Tempo, and Grafana processes."""
+        """Stop local RL-Insight server, Prometheus, Tempo, and Grafana processes."""
         conf = self._load_config(args)
         if not self._stack_management_enabled(conf, action="stop"):
             return 0
@@ -187,6 +187,10 @@ class ServerConfigValidator:
 
     def validate_start(self, conf: DictConfig) -> str:
         """Validate required start fields and return the trainer OTLP endpoint."""
+        if bool(OmegaConf.select(conf, "server.enable", default=True)):
+            self._require_int(conf, "server.port", "RL-Insight server port")
+            self._require_field(conf, "server.host", "RL-Insight server host")
+
         if bool(OmegaConf.select(conf, "prometheus.enable", default=True)):
             self._require_int(
                 conf, "prometheus.prometheus_port", "Prometheus HTTP port"
@@ -300,7 +304,7 @@ class ServerConsole:
             )
         )
         print(
-            f"Training side: set {MonitorEnv.SERVICE_IP} to the RL-Insight service IP."
+            f"Training side: set {MonitorEnv.SERVER_URL} to the RL-Insight server URL."
         )
 
     def print_running_summary(

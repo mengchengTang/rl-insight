@@ -44,10 +44,7 @@ class MonitorRayActor:
 class MonitorEnv:
     """Environment variable names used by trainer-side monitor config overrides."""
 
-    SERVICE_IP = "RL_INSIGHT_SERVICE_IP"
-    OTEL_PORT = "RL_INSIGHT_OTEL_PORT"
-    PROMETHEUS_PORT = "RL_INSIGHT_PROMETHEUS_PORT"
-    PROMETHEUS_CONFIG_FILE = "RL_INSIGHT_PROMETHEUS_CONFIG_FILE"
+    SERVER_URL = "RL_INSIGHT_SERVER_URL"
 
 
 class MonitorDefaults:
@@ -55,8 +52,6 @@ class MonitorDefaults:
 
     NAMESPACE = "rl_insight_monitor"
     METRICS_REPORT_PORT = 9092
-    PROMETHEUS_PORT = 9090
-    OTEL_PORT = 4318
 
 
 class MonitorBackend:

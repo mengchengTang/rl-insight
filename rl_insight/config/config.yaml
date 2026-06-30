@@ -10,6 +10,10 @@
 
 server:
   backend: local
+  enable: true
+  host: 0.0.0.0
+  public_host: ""
+  port: 8080
 
 prometheus:
   binary_path: ""
@@ -19,6 +23,9 @@ prometheus:
   prometheus_port: 9090
   retention_time: 30d
   config_file: ${service_root}/services/prometheus/prometheus.yml
+  target_file_dir: ""
+  file_sd_refresh_interval: 10s
+  trainer_job_name: trainer_metrics
 
 otel:
   otel_port: 4318

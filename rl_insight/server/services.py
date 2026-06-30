@@ -86,6 +86,14 @@ class ServerServiceManager:
 
     def service_urls(self, host: str, traces_endpoint: str) -> list[dict[str, str]]:
         rows: list[dict[str, str]] = []
+        if bool(OmegaConf.select(self.conf, "server.enable", default=True)):
+            rows.append(
+                {
+                    "service": "RL-Insight server",
+                    "endpoint": f"http://{host}:{int(self.conf.server.port)}",
+                    "purpose": "service control and discovery",
+                }
+            )
         if bool(OmegaConf.select(self.conf, "prometheus.enable", default=True)):
             rows.append(
                 {
