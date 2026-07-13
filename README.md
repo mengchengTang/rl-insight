@@ -45,7 +45,7 @@ https://github.com/user-attachments/assets/b0f05f3e-8b21-4813-8ba6-4796aa844d62
   <a href="https://github.com/user-attachments/assets/b0f05f3e-8b21-4813-8ba6-4796aa844d62">Watch the demo video</a>
 </p>
 
-### Separate async with vLLM
+### Separate Async with vLLM
 
 https://github.com/user-attachments/assets/d0ef242d-e108-468f-afa5-ec9a5321f0e8
 
