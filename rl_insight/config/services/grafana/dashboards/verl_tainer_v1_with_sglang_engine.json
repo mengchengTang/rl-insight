@@ -1662,7 +1662,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_critic_advantages_max",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -1777,7 +1777,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_critic_advantages_mean",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -1892,7 +1892,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_critic_advantages_min",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -2007,7 +2007,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_critic_returns_max",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -2122,7 +2122,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_critic_returns_mean",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -2237,7 +2237,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_critic_returns_min",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -2352,7 +2352,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_critic_rewards_max",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -2467,7 +2467,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_critic_rewards_mean",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -2582,7 +2582,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_critic_rewards_min",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -2697,7 +2697,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_critic_score_max",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -2812,7 +2812,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_critic_score_mean",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -2927,7 +2927,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_critic_score_min",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -8562,7 +8562,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_training_epoch",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
@@ -8654,7 +8654,7 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "rl_insight_monitor_training_global_step",
-                        "legendFormat": "__auto",
+                        "legendFormat": "{{__name__}}",
                         "range": true
                       }
                     },
