@@ -16662,7 +16662,7 @@
                   "showLegend": true
                 },
                 "mergeValues": true,
-                "perPage": 16,
+                "perPage": 64,
                 "rowHeight": 0.9,
                 "showValue": "auto",
                 "tooltip": {
