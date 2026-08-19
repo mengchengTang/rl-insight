@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # mstx_preprocessing 使用文档
 
 ## 1. 功能说明

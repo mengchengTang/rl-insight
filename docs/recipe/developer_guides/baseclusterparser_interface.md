@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # BaseClusterParser 接口说明
 
 `BaseClusterParser` 是所有集群级 Parser 的统一抽象基类，可以基于该基类新增一种解析后端类(参考 `MstxClusterParser`)

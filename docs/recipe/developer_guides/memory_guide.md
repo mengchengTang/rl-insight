@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # Memory 模块开发者指南
 
 本文面向 Memory 模块（Parser + Visualizer）的开发者，介绍设计思路、内部接口约定以及扩展开发指南。用户侧快速入门见 [Memory Quickstart](../overview/memory_quickstart.md)。

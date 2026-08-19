@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # Memory 分析模块
 
 ## 1. 简介

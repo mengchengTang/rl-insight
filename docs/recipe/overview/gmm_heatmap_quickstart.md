@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # RL-Insight - GMM 专家负载热力图可视化工具
 
 ## 一、简介
