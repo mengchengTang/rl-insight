@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 ## 扩展指南
 
 ### 1. 扩展 **DataRule**

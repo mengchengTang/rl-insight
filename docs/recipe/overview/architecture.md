@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # Insight 框架概览
 
 ## 1. 框架概览

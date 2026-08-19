@@ -2,11 +2,13 @@ Welcome to RL-Insight's documentation!
 ======================================
 
 RL-Insight is a performance insight and observability toolkit for reinforcement learning (RL) systems.
-It focuses on online observability for distributed RL training, with offline analysis utilities collected
-under Recipe.
+It focuses on online observability for distributed RL training.
 
 To collect CPU, memory, disk, network, or Ascend NPU metrics, start with
 :doc:`Hardware Monitoring <monitor/hardware/index>`.
+
+For offline Recipe utilities, see the
+`Recipe README <https://github.com/verl-project/rl-insight/blob/main/recipe/README.md>`_ on GitHub.
 
 --------------------------------------------
 
@@ -27,36 +29,6 @@ To collect CPU, memory, disk, network, or Ascend NPU metrics, start with
    monitor/hardware/cpu_monitoring_en
    monitor/hardware/npu_monitoring_zh
    monitor/hardware/npu_monitoring_en
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Recipe Offline Analysis
-
-   Architecture <recipe/overview/architecture>
-   RL Timeline quickstart <recipe/overview/RL_Timeline_quickstart>
-   GMM Expert Load visualization quickstart <recipe/overview/gmm_heatmap_quickstart>
-   Memory quickstart <recipe/overview/memory_quickstart>
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Recipe Data Specification
-
-   Data Specification and Format Guide <recipe/data/data_specification>
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Recipe Utils
-
-   MSTX Preprocessing <recipe/utils/mstx_preprocessing>
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Recipe Developer Guides
-
-   Extending Guide <recipe/developer_guides/extending_guide>
-   BaseClusterParser Interface <recipe/developer_guides/baseclusterparser_interface>
-   DataRule Extending Guide <recipe/developer_guides/rule_extending_guide>
-   Memory Guide <recipe/developer_guides/memory_guide>
 
 Contribution
 -------------
