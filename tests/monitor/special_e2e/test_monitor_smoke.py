@@ -51,18 +51,21 @@ def _wait_for_json(
 ) -> dict[str, Any]:
     deadline = time.monotonic() + READY_TIMEOUT_SECONDS
     last_error: Exception | None = None
+    last_payload: dict[str, Any] | None = None
     while time.monotonic() < deadline:
         try:
             response = requests.get(url, params=params, timeout=3)
             response.raise_for_status()
             payload = response.json()
+            last_payload = payload
             if ready(payload):
                 return payload
         except (requests.RequestException, ValueError) as exc:
             last_error = exc
         time.sleep(1)
     raise AssertionError(
-        f"{url} was not ready within {READY_TIMEOUT_SECONDS}s: {last_error}"
+        f"{url} was not ready within {READY_TIMEOUT_SECONDS}s: "
+        f"last_error={last_error} last_payload={last_payload}"
     )
 
 
@@ -158,7 +161,7 @@ def test_monitor_metrics_should_match_reported_values_when_events_are_emitted(
         assert float(result[0]["value"][1]) == pytest.approx(expected)
 
 
-def test_monitor_trace_should_be_queryable_when_trace_is_reported(
+def test_monitor_trace_state_should_be_queryable_when_interval_is_reported(
     monitor_stack: dict[str, str],
 ) -> None:
     """Report a state trace and verify Tempo stores its name and attributes."""
