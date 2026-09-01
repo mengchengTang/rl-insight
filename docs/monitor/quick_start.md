@@ -115,21 +115,35 @@ username: admin
 password: admin
 ```
 
-After login, open **Dashboards** from the left navigation and choose `RL-Insight`. For the sample script in this guide, select the `quick_start_demo` dashboard and set the time range to a recent window such as **Last 5 minutes** while the script is still running. For framework-specific runs, open the dashboard that matches that integration or experiment.
+After login, open **Dashboards** from the left navigation. Bundled dashboards are grouped into folders and tagged:
 
-Bundled dashboard JSON files live in the package directory:
+| Folder | Dashboards | Tags |
+| --- | --- | --- |
+| `verl` | `verl_trainer_v1_with_vllm_engine`, `verl_trainer_v1_with_sglang_engine` | `RL-Insight`, `verl`, `vllm` / `sglang` |
+| `verl-omni` | `verl_omni_trainer_v1_with_vllm_omni_engine` | `RL-Insight`, `verl-omni`, `vllm-omni` |
+| `agent_loop_trajectory` | `agent_loop_trajectory` | `RL-Insight`, `agent-loop`, `trajectory` |
+| `quick_start_demo` | `quick_start_demo` | `RL-Insight`, `quick-start`, `demo` |
+
+For the sample script in this guide, open **quick_start_demo** → `quick_start_demo` and set the time range to a recent window such as **Last 5 minutes** while the script is still running. For framework-specific runs, open the folder that matches that integration.
+
+Bundled dashboard JSON files live in the package directory, one subdirectory per Grafana folder:
 
 ```text
-rl_insight/config/services/grafana/dashboards
+rl_insight/config/services/grafana/dashboards/verl
+rl_insight/config/services/grafana/dashboards/verl-omni
+rl_insight/config/services/grafana/dashboards/agent_loop_trajectory
+rl_insight/config/services/grafana/dashboards/quick_start_demo
 ```
 
-At startup, RL-Insight copies them into the runtime dashboards directory and provisions Grafana from there:
+At startup, RL-Insight copies them into the runtime dashboards directory and provisions Grafana from there. Grafana creates one folder per subdirectory (`foldersFromFilesStructure`).
 
 ```text
 ~/.rl-insight/runtime/dashboards
 ```
 
-If you add or update a dashboard JSON file such as `quick_start_demo.json`, place it in the bundled dashboards directory before starting Grafana, or restart the stack so RL-Insight copies the latest file into the runtime directory and Grafana provisions it. Prometheus metrics and Tempo traces are persisted under `~/.rl-insight/data` by default. Stopping the server does not delete collected data.
+To add a dashboard, put the JSON in an existing subdirectory, or add a new subdirectory for a new folder, then restart the stack.
+
+Prometheus metrics and Tempo traces are persisted under `~/.rl-insight/data` by default. Stopping the server does not delete collected data.
 
 Prometheus scrape targets registered by trainers or `rl-insight server targets add` are stored separately in `~/.rl-insight/data/targets/prometheus-targets.yml`. The generated `prometheus.yml` references this persistent file through Prometheus file-based service discovery, so restarting the server stack does not clear registered targets. Target updates are written atomically under a cross-process lock. Existing registration paths continue to reload Prometheus for API compatibility, while file-based service discovery also refreshes the target file every five seconds.
 

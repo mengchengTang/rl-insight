@@ -750,12 +750,14 @@ def _render_grafana_provisioning(
             {
                 "name": "RL-Insight",
                 "orgId": 1,
-                "folder": "RL-Insight",
                 "type": "file",
                 "disableDeletion": False,
                 "updateIntervalSeconds": 10,
                 "allowUiUpdates": True,
-                "options": {"path": str(dashboard_path)},
+                "options": {
+                    "path": str(dashboard_path.resolve()),
+                    "foldersFromFilesStructure": True,
+                },
             }
         ],
     }
@@ -767,14 +769,10 @@ def _render_grafana_provisioning(
 def _stage_grafana_dashboards(conf: DictConfig, runtime_dir: Path) -> Path:
     source = Path(str(OmegaConf.select(conf, "grafana.dashboards_dir"))).resolve()
     target = (runtime_dir / "dashboards").resolve()
-    if source == target:
-        target.mkdir(parents=True, exist_ok=True)
-        return target
-
     target.mkdir(parents=True, exist_ok=True)
-
-    if not source.exists():
+    if source == target or not source.exists():
         return target
+
     for item in source.iterdir():
         destination = target / item.name
         if item.is_file():
@@ -783,8 +781,17 @@ def _stage_grafana_dashboards(conf: DictConfig, runtime_dir: Path) -> Path:
             shutil.copy2(item, destination)
         elif item.is_dir():
             if destination.exists() and not destination.is_dir():
-                continue
+                destination.unlink()
             shutil.copytree(item, destination, dirs_exist_ok=True)
+
+    source_names = {item.name for item in source.iterdir()}
+    for item in list(target.iterdir()):
+        if item.name in source_names:
+            continue
+        if item.is_file():
+            item.unlink()
+        else:
+            shutil.rmtree(item)
     return target
 
 
