@@ -1291,6 +1291,11 @@
           "includeAll": false
         }
       }
+    ],
+    "tags": [
+      "RL-Insight",
+      "agent-loop",
+      "trajectory"
     ]
   }
 }

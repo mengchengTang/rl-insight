@@ -9,7 +9,7 @@
       "grafana.app/managedBy": "classic-file-provisioning",
       "grafana.app/managerAllowsEdits": "true",
       "grafana.app/managerId": "RL-Insight",
-      "grafana.app/folderTitle": "RL-Insight"
+      "grafana.app/folderTitle": "quick_start_demo"
     }
   },
   "spec": {
@@ -626,7 +626,11 @@
     "links": [],
     "liveNow": false,
     "preload": false,
-    "tags": [],
+    "tags": [
+      "RL-Insight",
+      "quick-start",
+      "demo"
+    ],
     "timeSettings": {
       "timezone": "browser",
       "from": "now-5m",
