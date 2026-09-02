@@ -108,14 +108,14 @@ Open the Grafana URL printed by `rl-insight server start`. By default, Grafana l
 http://<server-ip>:3000
 ```
 
-The default login is:
+Anonymous Viewer access is enabled by default, so the Grafana URL opens the dashboards without a login prompt. To sign in (for example to edit dashboards), use:
 
 ```text
 username: admin
 password: admin
 ```
 
-After login, open **Dashboards** from the left navigation. Bundled dashboards are grouped into folders and tagged:
+Open **Dashboards** from the left navigation. Bundled dashboards are grouped into folders and tagged:
 
 | Folder | Dashboards | Tags |
 | --- | --- | --- |
