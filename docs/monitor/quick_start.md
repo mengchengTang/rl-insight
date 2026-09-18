@@ -2,7 +2,7 @@
 
 This guide starts RL-Insight Monitor from a fresh checkout, runs the local server stack, and adds the first metric and trace calls to training code.
 
-For service version requirements and Linux platform support, see [Server Installation](./server_installation.md).
+For service version requirements and Linux and Windows platform support, see [Server Installation](./server_installation.md).
 
 ## 1. Install RL-Insight
 
@@ -20,7 +20,7 @@ rl-insight --help
 
 ## 2. Install Server Services
 
-RL-Insight depends on Prometheus, Tempo, and Grafana for online monitoring. This section shows the direct install path. For supported platforms, offline installation, or using existing service binaries, see [Server Installation](./server_installation.md). The easiest Linux path is to let RL-Insight install the supported versions into `~/.rl-insight/services`:
+RL-Insight depends on Prometheus, Tempo, and Grafana for online monitoring. This section shows the direct install path. For supported platforms, offline installation, or using existing service binaries, see [Server Installation](./server_installation.md). The easiest Linux or Windows path is to let RL-Insight install the supported versions into `~/.rl-insight/services`:
 
 ```bash
 rl-insight server install

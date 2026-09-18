@@ -1,6 +1,6 @@
 # Server Installation
 
-RL-Insight Monitor needs three Linux services before online monitoring can run:
+RL-Insight Monitor needs three services before online monitoring can run:
 
 | Service | Role | Required version | Installer version |
 |---|---|---|---|
@@ -10,16 +10,19 @@ RL-Insight Monitor needs three Linux services before online monitoring can run:
 
 Choose one of the three approaches below depending on your network environment.
 
-## Supported Linux Platforms
+## Supported Platforms
 
-Automatic and manual installation are Linux-only.
+Automatic installation supports Linux and Windows x64.
 
 | OS family | CPU architectures |
 |---|---|
 | Ubuntu / Debian | `amd64` / `x86_64`, `arm64` / `aarch64` |
 | CentOS / RHEL / Rocky / Alma | `amd64` / `x86_64`, `arm64` / `aarch64` |
+| Windows | `amd64` / `x86_64` |
 
-Windows and macOS can run the training-side Python APIs, but RL-Insight does not manage local Prometheus, Tempo, or Grafana services there yet.
+On Windows, use the same `rl-insight server install`, `start --detach`, and `stop` commands in PowerShell. Prometheus and Grafana use `.zip` packages; Tempo uses `.tar.gz`. Services run as background processes, not Windows Services. Windows stops the process tree forcibly; Linux uses SIGTERM first. Default files live under `$HOME/.rl-insight`. Windows ARM64 and automatic installation on macOS are not supported.
+
+For manual Windows installation, extract the archives and set `binary_path` to each executable (for example, `C:/tools/prometheus/prometheus.exe`). Grafana 13.0.0 names its Windows executable `bin/grafana` without a `.exe` suffix. Keep the full Grafana directory, including `conf` and `public`. Use forward slashes or single-quoted strings for Windows paths in YAML. The shell commands in the manual example below are for Linux.
 
 ---
 
@@ -84,7 +87,7 @@ Use a machine with network access to download the files listed above. The filena
 
 ### 3. Install from the local directory
 
-Place the three `.tar.gz` files in a single directory and run:
+Place the three release archives (`.tar.gz` or `.zip`, depending on platform) in a single directory and run:
 
 ```bash
 rl-insight server install --local-archive /path/to/archives
@@ -111,7 +114,7 @@ grafana:
 
 ### 1. Get the archives
 
-Follow Approach 2 to identify and download the three `.tar.gz` files.
+Follow Approach 2 to identify and download the three release archives (`.tar.gz` or `.zip`, depending on platform).
 
 ### 2. Extract and place
 

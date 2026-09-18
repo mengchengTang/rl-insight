@@ -65,7 +65,7 @@ Start with the guide that matches your current setup:
 
 | Document | What it covers | When to use it |
 |---|---|---|
-| [Server Installation](https://rl-insight.readthedocs.io/en/latest/monitor/server_installation.html) | Prometheus, Tempo, and Grafana service setup, including supported Linux platforms, direct installation, offline installation, and existing service binaries. | Use this first if the monitor services are not installed or you need to verify the server environment. |
+| [Server Installation](https://rl-insight.readthedocs.io/en/latest/monitor/server_installation.html) | Prometheus, Tempo, and Grafana service setup, including supported Linux and Windows platforms, direct installation, offline installation, and existing service binaries. | Use this first if the monitor services are not installed or you need to verify the server environment. |
 | [Quick Start](https://rl-insight.readthedocs.io/en/latest/monitor/quick_start.html) | A full smoke-test flow: install the Python package, start the monitor stack, emit sample metric/trace data, and open Grafana. | Use this after the services are ready, or when you want to validate the monitor path end to end. |
 | [Hardware Monitoring](https://rl-insight.readthedocs.io/en/latest/monitor/hardware/index.html) | Install or reuse node_exporter and NPU Exporter, then register CPU and Ascend NPU targets with RL-Insight. | Use this when you want hardware metrics in the RL-Insight Grafana dashboards. |
 
@@ -76,7 +76,7 @@ Recommended order:
 
 ## Server Stack
 
-RL-Insight manages three open-source services locally on Linux:
+RL-Insight manages three open-source services locally on Linux and Windows x64:
 
 | Service | Purpose | Default port | Required version | Installer version |
 |---|---|---:|---:|---:|
@@ -84,7 +84,7 @@ RL-Insight manages three open-source services locally on Linux:
 | Tempo | Trace storage and query API | `3200` | `>= 2.0.0` | `2.6.1` |
 | Grafana | Dashboards and trace exploration | `3000` | `>= 13.0.0` | `13.0.0` |
 
-`rl-insight server install` downloads supported Linux binaries into `~/.rl-insight/services`. `rl-insight server start` runs the RL-Insight server with Prometheus, Tempo, and Grafana with data persisted under `~/.rl-insight/data` by default. Pass `--log-dir /path/to/data` to use or restore another data directory.
+`rl-insight server install` downloads supported platform binaries into `~/.rl-insight/services`. `rl-insight server start` runs the RL-Insight server with Prometheus, Tempo, and Grafana with data persisted under `~/.rl-insight/data` by default. Pass `--log-dir /path/to/data` to use or restore another data directory.
 
 ## Training API
 
@@ -143,7 +143,7 @@ pip install "rl-insight[recipe]"
 ## Documentation
 
 - [Quick Start](https://rl-insight.readthedocs.io/en/latest/monitor/quick_start.html): install RL-Insight, start the services, instrument code, and open Grafana.
-- [Server Installation](https://rl-insight.readthedocs.io/en/latest/monitor/server_installation.html): Linux service requirements, supported OS/CPU combinations, and version policy.
+- [Server Installation](https://rl-insight.readthedocs.io/en/latest/monitor/server_installation.html): Linux and Windows service requirements, supported OS/CPU combinations, and version policy.
 - [Hardware Monitoring](https://rl-insight.readthedocs.io/en/latest/monitor/hardware/index.html): install exporters and register CPU or Ascend NPU scrape targets.
 - [Default server config](https://github.com/verl-project/rl-insight/blob/main/rl_insight/config/config.yaml): bundled ports, retention settings, and service config paths.
 - [Recipe documentation](https://rl-insight.readthedocs.io/en/latest/recipe/overview/architecture.html): offline timeline, heatmap, and parser utilities.

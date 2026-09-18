@@ -18,15 +18,14 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from collections.abc import Mapping
-from typing import Sequence
 
 import requests
 from omegaconf import DictConfig, OmegaConf
 
-from ..utils.monitor_config_loader import load_server_config_file
 from ..utils.constants import MonitorEnv
+from ..utils.monitor_config_loader import load_server_config_file
 from ..utils.prometheus_utils import PrometheusTarget, PrometheusTargetStore
 from .dependencies import MissingDependencyError, ServiceStatus
 from .catalog import DEFAULT_STATE_ROOT
@@ -412,9 +411,16 @@ class ServerConsole:
                 "reachable from training workers."
             )
             print(f"Detected {family_label} URL candidate:")
-            print(f"  export {MonitorEnv.SERVER_URL}={server_url}")
+            if sys.platform == "win32":
+                print(f'  $env:{MonitorEnv.SERVER_URL}="{server_url}"')
+            else:
+                print(f"  export {MonitorEnv.SERVER_URL}={server_url}")
         if grafana_url:
-            print(f"View monitoring dashboard ({family_label}):")
+            print("View monitoring dashboard on this computer:")
+            print(f"  {_service_url(addresses['loopback'], conf.grafana.port)}")
+            print(
+                f"Network dashboard URL candidate ({family_label}; check reachability):"
+            )
             print(f"  {grafana_url}")
 
 

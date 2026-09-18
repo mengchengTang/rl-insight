@@ -24,6 +24,7 @@ import stat
 import tarfile
 import urllib.error
 import urllib.request
+import zipfile
 from pathlib import Path
 from typing import Any, Callable
 
@@ -113,6 +114,8 @@ class ServiceInstaller:
 
     def _resolve_release(self, name: str) -> dict[str, str]:
         os_token, arch_token, archive_ext = _platform_archive_tokens()
+        if name == "tempo":
+            archive_ext = ".tar.gz"
         configured_version = _select_str(self.conf, f"{name}.install_version")
         if name == "grafana":
             version = configured_version or self._latest_grafana_version()
@@ -131,7 +134,7 @@ class ServiceInstaller:
             if configured_version
             else str(self._github_latest_release(spec.github_repo)["tag_name"])
         )
-        version = tag[1:] if tag.startswith("v") else tag
+        version = tag.removeprefix("v")
         if name == "prometheus":
             asset = f"prometheus-{version}.{os_token}-{arch_token}{archive_ext}"
         elif name == "tempo":
@@ -158,6 +161,8 @@ class ServiceInstaller:
                 template = "https://github.com/grafana/tempo/releases/download/v{version}/tempo_{version}_{os}_{arch}.tar.gz"
             else:
                 raise RuntimeError(f"No download source configured for {name}")
+            if os_token == "windows" and name != "tempo":
+                template = template.removesuffix(".tar.gz") + ".zip"
         return template.format(version=version, os=os_token, arch=arch_token)
 
     @staticmethod
@@ -211,9 +216,11 @@ class ServiceInstaller:
     def _download_file(url: str, target: Path) -> None:
         request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
         try:
-            with urllib.request.urlopen(request, timeout=120) as response:
-                with target.open("wb") as output:
-                    shutil.copyfileobj(response, output)
+            with (
+                urllib.request.urlopen(request, timeout=120) as response,
+                target.open("wb") as output,
+            ):
+                shutil.copyfileobj(response, output)
         except urllib.error.HTTPError as exc:
             raise RuntimeError(f"Failed to download {url}: HTTP {exc.code}") from exc
         except urllib.error.URLError as exc:
@@ -221,6 +228,15 @@ class ServiceInstaller:
 
     @staticmethod
     def _extract_archive(archive_path: Path, target_dir: Path) -> None:
+        if archive_path.suffix == ".zip":
+            with zipfile.ZipFile(archive_path) as archive:
+                root = target_dir.resolve()
+                for name in archive.namelist():
+                    target = (target_dir / name).resolve()
+                    if root not in (target, *target.parents):
+                        raise RuntimeError(f"Unsafe archive member path: {name}")
+                archive.extractall(target_dir)
+            return
         with tarfile.open(archive_path) as archive:
             ServiceInstaller._safe_extract_tar(archive, target_dir)
         ServiceInstaller._mark_executables(target_dir)
@@ -247,16 +263,16 @@ class ServiceInstaller:
 def _platform_archive_tokens() -> tuple[str, str, str]:
     system = platform.system().lower()
     machine = platform.machine().lower()
-    if system != "linux":
+    if system not in {"linux", "windows"}:
         raise RuntimeError(
-            "RL-Insight automatic service install currently supports Linux only."
+            "RL-Insight automatic service install supports Linux and Windows."
         )
-    os_token = "linux"
-    archive_ext = ".tar.gz"
+    os_token = system
+    archive_ext = ".zip" if system == "windows" else ".tar.gz"
 
     if machine in {"x86_64", "amd64"}:
         arch_token = "amd64"
-    elif machine in {"aarch64", "arm64"}:
+    elif machine in {"aarch64", "arm64"} and system == "linux":
         arch_token = "arm64"
     else:
         raise RuntimeError(f"Unsupported CPU architecture for auto-install: {machine}")

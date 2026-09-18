@@ -137,7 +137,7 @@ def test_reload_should_post_to_local_prometheus_when_store_is_configured(
 def test_register_should_preserve_concurrent_cross_process_updates(tmp_path) -> None:
     config_file = tmp_path / "prometheus.yml"
     targets_file = tmp_path / "prometheus-targets.yml"
-    context = multiprocessing.get_context("fork")
+    context = multiprocessing.get_context("spawn")
     start_event = context.Event()
     processes = [
         context.Process(

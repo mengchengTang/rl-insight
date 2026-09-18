@@ -11,6 +11,8 @@ on:
       - v0.*
     paths:
       - "rl_insight/api.py"
+      - "rl_insight/server/**"
+      - "pyproject.toml"
       - "rl_insight/client/**"
       - "rl_insight/collector/**"
       - "rl_insight/utils/**"
@@ -26,11 +28,12 @@ permissions:
 
 jobs:
   unit_test_monitor:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
       matrix:
         python-version: ["3.11"]
+        os: [ubuntu-latest, windows-latest]
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

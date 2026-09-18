@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import threading
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
@@ -119,21 +120,26 @@ class PrometheusTargetStore:
     @contextmanager
     def _file_lock(self):
         """Serialize read-modify-write updates made by different processes."""
-        try:
-            import fcntl
-        except ImportError as exc:
-            raise RuntimeError(
-                "Prometheus target persistence requires a POSIX server"
-            ) from exc
-
         self.targets_file.parent.mkdir(parents=True, exist_ok=True)
         lock_file = self.targets_file.with_name(f".{self.targets_file.name}.lock")
         with lock_file.open("a+", encoding="utf-8") as handle:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            if sys.platform == "win32":
+                import msvcrt
+
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
             try:
                 yield
             finally:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                if sys.platform == "win32":
+                    handle.seek(0)
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
     def _write_targets(
         self, target_map: Mapping[tuple[str, str], Mapping[str, str]]

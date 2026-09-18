@@ -18,8 +18,8 @@ from __future__ import annotations
 
 import argparse
 import logging
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from . import __version__
 from .server.commands import ServerCommands
@@ -84,7 +84,7 @@ def _add_server_parser(subparsers: argparse._SubParsersAction) -> None:
         "--local-archive",
         type=Path,
         default=None,
-        help="Directory with pre-downloaded .tar.gz archives; skip download when archive matches.",
+        help="Directory with pre-downloaded .tar.gz or .zip archives; skip download when archive matches.",
     )
 
     install.set_defaults(func=commands.install)

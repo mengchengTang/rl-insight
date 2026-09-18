@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import configparser
 import datetime as _dt
-import fcntl
 import json
 import os
 import re
@@ -27,24 +26,26 @@ import signal
 import subprocess
 import sys
 import time
+from collections.abc import Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
+import psutil
 import yaml
 from omegaconf import DictConfig, OmegaConf
 
-from .catalog import DEFAULT_STATE_ROOT, STATE_FILE
-from .network import format_host_port, local_addresses
 from ..utils.constants import (
     PrometheusScrape,
     prometheus_targets_file_from_config,
 )
+from .catalog import DEFAULT_STATE_ROOT, STATE_FILE
 from .dependencies import (
-    MissingDependencyError,
     DependencyManager,
+    MissingDependencyError,
 )
+from .network import format_host_port, local_addresses
 
 
 @dataclass(frozen=True)
@@ -329,6 +330,8 @@ def load_active_state(state_file: Path) -> dict[str, Any] | None:
 def is_process_running(pid: int) -> bool:
     if pid <= 0:
         return False
+    if sys.platform == "win32":
+        return psutil.pid_exists(pid)
     try:
         os.kill(pid, 0)
     except OSError:
@@ -574,11 +577,23 @@ def _prometheus_targets_lock(path: Path):
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_file = path.with_name(f".{path.name}.lock")
     with lock_file.open("a+", encoding="utf-8") as handle:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        if sys.platform == "win32":
+            import msvcrt
+
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
         try:
             yield
         finally:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            if sys.platform == "win32":
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 def _read_file_sd_targets(path: Path) -> list[dict[str, Any]]:
@@ -866,7 +881,8 @@ def _spawn_service(
             stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL,
             env=env,
-            start_new_session=True,
+            start_new_session=sys.platform != "win32",
+            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
         )
         stdout.close()
         return process
@@ -878,6 +894,10 @@ def _spawn_service(
 def _terminate_process(process: subprocess.Popen[Any]) -> None:
     if process.poll() is not None:
         return
+    if sys.platform == "win32":
+        _terminate_pid(process.pid)
+        process.wait(timeout=8)
+        return
     try:
         os.killpg(process.pid, signal.SIGTERM)
     except OSError:
@@ -887,6 +907,23 @@ def _terminate_process(process: subprocess.Popen[Any]) -> None:
 
 def _terminate_pid(pid: int) -> None:
     if pid <= 0:
+        return
+    if sys.platform == "win32":
+        try:
+            parent = psutil.Process(pid)
+            processes = parent.children(recursive=True) + [parent]
+            for process in processes:
+                try:
+                    process.terminate()
+                except psutil.NoSuchProcess:
+                    pass
+            _, alive = psutil.wait_procs(processes, timeout=8)
+            if alive:
+                raise RuntimeError(
+                    f"Failed to stop processes: {[p.pid for p in alive]}"
+                )
+        except psutil.NoSuchProcess:
+            pass
         return
     try:
         os.killpg(pid, signal.SIGTERM)
