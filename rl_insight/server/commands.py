@@ -27,8 +27,8 @@ from omegaconf import DictConfig, OmegaConf
 from ..utils.constants import MonitorEnv
 from ..utils.monitor_config_loader import load_server_config_file
 from ..utils.prometheus_utils import PrometheusTarget, PrometheusTargetStore
-from .dependencies import MissingDependencyError, ServiceStatus
 from .catalog import DEFAULT_STATE_ROOT
+from .dependencies import MissingDependencyError, ServiceStatus
 from .display import (
     active_state_rows,
     dependency_rows,
@@ -123,10 +123,14 @@ class ServerCommands:
             self.console.print_missing_start_dependencies(missing)
             return 2
 
-        self.console.print_start_summary(manager, conf)
+        auto_port = getattr(args, "auto_port", False)
+        if not auto_port:
+            self.console.print_start_summary(manager, conf)
 
         try:
-            stack = manager.start(detach=args.detach, attach_logs=args.attach_logs)
+            stack = manager.start(
+                detach=args.detach, attach_logs=args.attach_logs, auto_port=auto_port
+            )
         except MissingDependencyError as exc:
             self.console.print_missing_start_dependencies(exc.missing)
             return 2
@@ -138,6 +142,8 @@ class ServerCommands:
             print("RL-Insight server services already appear to be running.")
             return 0
 
+        if auto_port:
+            self.console.print_start_summary(manager, conf, status="ready")
         self.console.print_running_summary(conf, stack.services)
 
         if args.detach:
@@ -191,9 +197,12 @@ class ServerCommands:
             return 2
 
         conf = self._load_config(args)
-        store = PrometheusTargetStore.from_config(conf)
-
         try:
+            active_state = ServerServiceManager(conf).active_state()
+            if active_state:
+                runtime_config = Path(active_state["runtime_dir"]) / "server.yaml"
+                conf = OmegaConf.load(runtime_config)
+            store = PrometheusTargetStore.from_config(conf)
             for job in jobs:
                 raw_targets = job.get("targets")
                 if not isinstance(raw_targets, list) or not raw_targets:
@@ -354,6 +363,8 @@ class ServerConsole:
         self,
         manager: ServerServiceManager,
         conf: DictConfig,
+        *,
+        status: str = "starting",
     ) -> None:
         addresses = local_addresses()
         panel_rows = []
@@ -369,7 +380,7 @@ class ServerConsole:
                     "Listen",
                     "IPv6 (::)" if addresses["family"] == "ipv6" else "IPv4 (0.0.0.0)",
                 ),
-                ("Status", "starting"),
+                ("Status", status),
                 ("Logs", "enabled"),
             ]
         )

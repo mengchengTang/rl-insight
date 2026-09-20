@@ -38,6 +38,24 @@ Then start the stack:
 rl-insight server start
 ```
 
+To automatically replace occupied ports while keeping available configured ports:
+
+```bash
+rl-insight server start --auto-port
+# Also supported in background mode:
+rl-insight server start --auto-port --detach
+```
+
+This covers the RL-Insight API, Prometheus, Grafana, Tempo query and OTLP HTTP
+ports, plus Tempo's internal gRPC and memberlist ports. The original YAML is not
+modified. Actual ports are saved in the runtime configuration and used by service
+discovery, Grafana data sources, and `server targets add`. Use the printed
+`RL_INSIGHT_SERVER_URL` and Grafana URL; ports can change between starts.
+Automatic mode waits for services to be ready and retries startup up to three
+attempts if another process takes an allocated port. Without `--auto-port`, the
+existing fixed-port behavior is unchanged. This option does not create a separate
+stack when an instance is already running.
+
 To use a custom data directory, pass `--log-dir`:
 
 ```bash

@@ -95,6 +95,11 @@ def _add_server_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     _add_common_config_args(start)
     start.add_argument(
+        "--auto-port",
+        action="store_true",
+        help="Keep available configured ports and automatically replace occupied ports.",
+    )
+    start.add_argument(
         "--log-dir",
         type=Path,
         default=None,
