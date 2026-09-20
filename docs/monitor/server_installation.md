@@ -20,10 +20,6 @@ Automatic installation supports Linux and Windows x64.
 | CentOS / RHEL / Rocky / Alma | `amd64` / `x86_64`, `arm64` / `aarch64` |
 | Windows | `amd64` / `x86_64` |
 
-On Windows, use the same `rl-insight server install`, `start --detach`, and `stop` commands in PowerShell. Prometheus and Grafana use `.zip` packages; Tempo uses `.tar.gz`. Services run as background processes, not Windows Services. Windows stops the process tree forcibly; Linux uses SIGTERM first. Default files live under `$HOME/.rl-insight`. Windows ARM64 and automatic installation on macOS are not supported.
-
-For manual Windows installation, extract the archives and set `binary_path` to each executable (for example, `C:/tools/prometheus/prometheus.exe`). Grafana 13.0.0 names its Windows executable `bin/grafana` without a `.exe` suffix. Keep the full Grafana directory, including `conf` and `public`. Use forward slashes or single-quoted strings for Windows paths in YAML. The shell commands in the manual example below are for Linux.
-
 ---
 
 ## Approach 1: Direct Installation (Official Source)
@@ -118,7 +114,7 @@ Follow Approach 2 to identify and download the three release archives (`.tar.gz`
 
 ### 2. Extract and place
 
-The default managed directory is `~/.rl-insight/services`. All three services extract the same way: `tar -xzf` into a temp directory, then copy the output into place.
+On Windows, extract the archives and configure `binary_path` for each service; keep the full Grafana directory. The commands below are for Linux.
 
 ```bash
 PROMETHEUS_ARCHIVE=prometheus-2.54.1.linux-arm64.tar.gz

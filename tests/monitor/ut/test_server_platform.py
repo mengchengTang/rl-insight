@@ -14,9 +14,11 @@
 
 """Installation and real process lifecycle regressions across platforms."""
 
+import io
 import json
 import os
 import sys
+import tarfile
 import time
 import zipfile
 
@@ -35,7 +37,9 @@ from rl_insight.server.runtime import (
 from rl_insight.utils.monitor_config_loader import load_server_config_file
 
 
-@pytest.mark.parametrize("system,arch", [("Linux", "aarch64"), ("Windows", "AMD64")])
+@pytest.mark.parametrize(
+    "system,arch", [("Linux", "aarch64"), ("Linux", "x86_64"), ("Windows", "AMD64")]
+)
 def test_release_archives(monkeypatch, tmp_path, system, arch):
     monkeypatch.setattr("platform.system", lambda: system)
     monkeypatch.setattr("platform.machine", lambda: arch)
@@ -51,8 +55,9 @@ def test_release_archives(monkeypatch, tmp_path, system, arch):
 
 
 @pytest.mark.parametrize("name", ["prometheus", "grafana"])
-def test_zip_install_and_binary_discovery(tmp_path, name):
-    archive_path = tmp_path / "service.zip"
+@pytest.mark.parametrize("suffix", [".zip", ".download"])
+def test_zip_install_and_binary_discovery(tmp_path, name, suffix):
+    archive_path = tmp_path / ("service" + suffix)
     executable = "prometheus.exe" if os.name == "nt" and name == "prometheus" else name
     with zipfile.ZipFile(archive_path, "w") as archive:
         archive.writestr("package/" + executable, b"binary")
@@ -72,6 +77,36 @@ def test_zip_rejects_parent_paths(tmp_path):
     with pytest.raises(RuntimeError, match="Unsafe archive member"):
         ServiceInstaller._extract_archive(archive_path, tmp_path / "install")
     assert not (tmp_path / "outside").exists()
+
+
+@pytest.mark.parametrize("member_name", ["package/tempo", "../outside"])
+def test_tar_content_detection_and_path_validation(tmp_path, member_name):
+    archive_path = tmp_path / "service.download"
+    with tarfile.open(archive_path, "w:gz") as archive:
+        member = tarfile.TarInfo(member_name)
+        member.size = 6
+        archive.addfile(member, io.BytesIO(b"binary"))
+    target = tmp_path / "install"
+    if member_name == "../outside":
+        with pytest.raises(RuntimeError, match="Unsafe archive member"):
+            ServiceInstaller._extract_archive(archive_path, target)
+        assert not (tmp_path / "outside").exists()
+    else:
+        ServiceInstaller._extract_archive(archive_path, target)
+        assert (target / member_name).read_bytes() == b"binary"
+
+
+def test_custom_download_template_preserves_platform_fields(monkeypatch, tmp_path):
+    monkeypatch.setattr("platform.system", lambda: "Windows")
+    monkeypatch.setattr("platform.machine", lambda: "AMD64")
+    conf = load_server_config_file()
+    conf.prometheus.download_url_template = (
+        "https://mirror.example/{os}/{arch}/{version}/{asset}"
+    )
+    plan = DependencyManager(conf, tmp_path).plan_install(targets=["prometheus"])[0]
+    assert plan["url"] == (
+        f"https://mirror.example/windows/amd64/{plan['version']}/{plan['asset']}"
+    )
 
 
 @pytest.mark.parametrize("recorded", [False, True])

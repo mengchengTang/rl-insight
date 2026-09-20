@@ -113,57 +113,33 @@ class ServiceInstaller:
         }
 
     def _resolve_release(self, name: str) -> dict[str, str]:
-        os_token, arch_token, archive_ext = _platform_archive_tokens()
-        if name == "tempo":
-            archive_ext = ".tar.gz"
-        configured_version = _select_str(self.conf, f"{name}.install_version")
-        if name == "grafana":
-            version = configured_version or self._latest_grafana_version()
-            asset = f"grafana-{version}.{os_token}-{arch_token}{archive_ext}"
-            return {
-                "version": version,
-                "asset": asset,
-                "url": self._build_download_url(name, version, os_token, arch_token),
-            }
-
+        os_token, arch_token = _platform_archive_tokens()
         spec = SPECS[name]
-        if not spec.github_repo:
-            raise RuntimeError(f"No release source configured for {name}")
-        tag = (
-            f"v{configured_version}"
-            if configured_version
-            else str(self._github_latest_release(spec.github_repo)["tag_name"])
+        version = _select_str(self.conf, f"{name}.install_version")
+        if not version:
+            if spec.github_repo:
+                version = str(
+                    self._github_latest_release(spec.github_repo)["tag_name"]
+                ).removeprefix("v")
+            else:
+                version = self._latest_grafana_version()
+        archive_ext = spec.windows_archive_ext if os_token == "windows" else ".tar.gz"
+        fields = {
+            "version": version,
+            "os": os_token,
+            "arch": arch_token,
+            "ext": archive_ext,
+        }
+        asset = spec.asset_template.format(**fields)
+        template = (
+            _select_str(self.conf, f"{name}.download_url_template")
+            or spec.download_url_template
         )
-        version = tag.removeprefix("v")
-        if name == "prometheus":
-            asset = f"prometheus-{version}.{os_token}-{arch_token}{archive_ext}"
-        elif name == "tempo":
-            asset = f"tempo_{version}_{os_token}_{arch_token}{archive_ext}"
-        else:
-            raise RuntimeError(f"Unsupported service: {name}")
         return {
             "version": version,
             "asset": asset,
-            "url": self._build_download_url(name, version, os_token, arch_token),
+            "url": template.format(asset=asset, **fields),
         }
-
-    def _build_download_url(
-        self, name: str, version: str, os_token: str, arch_token: str
-    ) -> str:
-        """Build the download URL from the configured template or built-in defaults."""
-        template = _select_str(self.conf, f"{name}.download_url_template")
-        if not template:
-            if name == "grafana":
-                template = "https://dl.grafana.com/oss/release/grafana-{version}.{os}-{arch}.tar.gz"
-            elif name == "prometheus":
-                template = "https://github.com/prometheus/prometheus/releases/download/v{version}/prometheus-{version}.{os}-{arch}.tar.gz"
-            elif name == "tempo":
-                template = "https://github.com/grafana/tempo/releases/download/v{version}/tempo_{version}_{os}_{arch}.tar.gz"
-            else:
-                raise RuntimeError(f"No download source configured for {name}")
-            if os_token == "windows" and name != "tempo":
-                template = template.removesuffix(".tar.gz") + ".zip"
-        return template.format(version=version, os=os_token, arch=arch_token)
 
     @staticmethod
     def _github_latest_release(repo: str) -> dict[str, Any]:
@@ -228,7 +204,7 @@ class ServiceInstaller:
 
     @staticmethod
     def _extract_archive(archive_path: Path, target_dir: Path) -> None:
-        if archive_path.suffix == ".zip":
+        if zipfile.is_zipfile(archive_path):
             with zipfile.ZipFile(archive_path) as archive:
                 root = target_dir.resolve()
                 for name in archive.namelist():
@@ -260,7 +236,7 @@ class ServiceInstaller:
                 )
 
 
-def _platform_archive_tokens() -> tuple[str, str, str]:
+def _platform_archive_tokens() -> tuple[str, str]:
     system = platform.system().lower()
     machine = platform.machine().lower()
     if system not in {"linux", "windows"}:
@@ -268,7 +244,6 @@ def _platform_archive_tokens() -> tuple[str, str, str]:
             "RL-Insight automatic service install supports Linux and Windows."
         )
     os_token = system
-    archive_ext = ".zip" if system == "windows" else ".tar.gz"
 
     if machine in {"x86_64", "amd64"}:
         arch_token = "amd64"
@@ -276,7 +251,7 @@ def _platform_archive_tokens() -> tuple[str, str, str]:
         arch_token = "arm64"
     else:
         raise RuntimeError(f"Unsupported CPU architecture for auto-install: {machine}")
-    return os_token, arch_token, archive_ext
+    return os_token, arch_token
 
 
 def _select_str(conf: DictConfig, key: str) -> str:

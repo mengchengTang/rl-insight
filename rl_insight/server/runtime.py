@@ -874,6 +874,9 @@ def _spawn_service(
     env = os.environ.copy()
     log_file.parent.mkdir(parents=True, exist_ok=True)
     stdout = log_file.open("ab")
+    creationflags = 0
+    if sys.platform == "win32":
+        creationflags = subprocess.CREATE_NO_WINDOW
     try:
         process = subprocess.Popen(
             list(command),
@@ -882,7 +885,7 @@ def _spawn_service(
             stdin=subprocess.DEVNULL,
             env=env,
             start_new_session=sys.platform != "win32",
-            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+            creationflags=creationflags,
         )
         stdout.close()
         return process
