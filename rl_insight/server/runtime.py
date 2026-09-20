@@ -20,7 +20,6 @@ import configparser
 import datetime as _dt
 import errno
 import json
-import logging
 import os
 import re
 import shutil
@@ -51,22 +50,16 @@ from .dependencies import (
 )
 from .network import format_host_port, local_addresses
 
-# Config section, managed ports (health-check HTTP port first), readiness path.
-_SERVICE_ENDPOINTS = {
-    "rl-insight-server": ("server", ("server.port",), "/healthz"),
-    "prometheus": ("prometheus", ("prometheus.prometheus_port",), "/-/ready"),
-    "tempo": (
-        "tempo",
-        (
-            "tempo.query_port",
-            "otel.otel_port",
-            "tempo.grpc_port",
-            "tempo.memberlist_port",
-        ),
-        "/ready",
-    ),
-    "grafana": ("grafana", ("grafana.port",), "/api/health"),
+_HEALTH_ENDPOINTS = {
+    "rl-insight-server": ("server.port", "/healthz"),
+    "prometheus": ("prometheus.prometheus_port", "/-/ready"),
+    "tempo": ("tempo.query_port", "/ready"),
+    "grafana": ("grafana.port", "/api/health"),
 }
+
+
+class PortConflictError(RuntimeError):
+    """A child process lost its allocated port before binding."""
 
 
 @dataclass(frozen=True)
@@ -84,7 +77,6 @@ class StartedService:
     process: subprocess.Popen[Any]
     command: list[str]
     log_file: Path
-    log_offset: int = 0
 
 
 @dataclass
@@ -148,57 +140,48 @@ class LocalServiceRuntime:
     def start(
         self, *, detach: bool, attach_logs: bool, auto_port: bool = False
     ) -> StartedStack | None:
-        """Start the stack, retrying only port conflicts in automatic mode."""
         for attempt in range(3 if auto_port else 1):
             try:
-                stack = self._start_once(auto_port=auto_port)
-                break
-            except PortConflictError:
-                if not auto_port or attempt == 2:
-                    raise
-                logging.getLogger(__name__).warning(
-                    "Port taken during startup; retrying with available ports."
+                return self._start_once(
+                    detach=detach, attach_logs=attach_logs, auto_port=auto_port
                 )
-        if stack and attach_logs and not detach:
-            LogTailer([service.log_file for service in stack.services]).poll()
-        return stack
+            except PortConflictError:
+                if attempt == 2 or not auto_port:
+                    raise
+        return None
 
     def _assign_ports(self) -> None:
-        """Reserve distinct available ports until the complete plan is built."""
-        ports = [
-            key
-            for section, keys, _ in _SERVICE_ENDPOINTS.values()
-            if bool(OmegaConf.select(self.conf, f"{section}.enable", default=True))
-            for key in keys
-        ]
-        if bool(OmegaConf.select(self.conf, "tempo.enable", default=True)):
-            source = Path(str(self.conf.tempo.config_file))
-            tempo = yaml.safe_load(source.read_text(encoding="utf-8")) or {}
+        """Plan distinct ports, reserving them together until allocation finishes."""
+        ports = {key: service for service, (key, _) in _HEALTH_ENDPOINTS.items()}
+        ports["otel.otel_port"] = "tempo"
+        if OmegaConf.select(self.conf, "tempo.enable", default=True):
+            tempo = yaml.safe_load(
+                Path(str(self.conf.tempo.config_file)).read_text(encoding="utf-8")
+            )
             for key, section, field, default in (
                 ("grpc_port", "server", "grpc_listen_port", 9095),
                 ("memberlist_port", "memberlist", "bind_port", 7946),
             ):
                 path = f"tempo.{key}"
                 if OmegaConf.select(self.conf, path) is None:
-                    OmegaConf.update(
-                        self.conf, path, tempo.get(section, {}).get(field, default)
-                    )
+                    port = (tempo or {}).get(section, {}).get(field, default)
+                    OmegaConf.update(self.conf, path, port)
+                ports[path] = "tempo"
         address = local_addresses()
         family = socket.AF_INET6 if address["family"] == "ipv6" else socket.AF_INET
         with ExitStack() as reservations:
-            for key in ports:
-                requested = int(OmegaConf.select(self.conf, key))
-                if not 0 <= requested <= 65535:
-                    raise RuntimeError(f"Invalid port for {key}: {requested}")
-                # Memberlist uses the same port for both TCP and UDP.
-                kinds = (
-                    (socket.SOCK_STREAM, socket.SOCK_DGRAM)
-                    if key == "tempo.memberlist_port"
-                    else (socket.SOCK_STREAM,)
-                )
-                for attempt in range(32):
+            for key, service in ports.items():
+                section = "server" if service == "rl-insight-server" else service
+                if not OmegaConf.select(self.conf, f"{section}.enable", default=True):
+                    continue
+                port = int(OmegaConf.select(self.conf, key))
+                if not 0 <= port <= 65535:
+                    raise RuntimeError(f"Invalid port for {key}: {port}")
+                kinds = [socket.SOCK_STREAM]
+                if key == "tempo.memberlist_port":
+                    kinds.append(socket.SOCK_DGRAM)
+                for _ in range(32):
                     with ExitStack() as candidate:
-                        port = requested if attempt == 0 else 0
                         try:
                             for kind in kinds:
                                 sock = candidate.enter_context(
@@ -215,20 +198,57 @@ class LocalServiceRuntime:
                                 raise RuntimeError(
                                     f"Cannot allocate {key}: {exc}"
                                 ) from exc
+                            port = 0
                             continue
                         reservations.enter_context(candidate.pop_all())
                         OmegaConf.update(self.conf, key, port)
-                        if port != requested:
-                            logging.getLogger(__name__).info(
-                                "%s: %s -> %s", key, requested, port
-                            )
                         break
                 else:
-                    raise RuntimeError(
-                        f"Could not allocate an available port for {key}"
-                    )
+                    raise RuntimeError(f"Could not allocate a port for {key}")
 
-    def _start_once(self, *, auto_port: bool) -> StartedStack | None:
+    def _wait_ready(self, service: StartedService, offset: int) -> None:
+        """Check readiness and classify only this attempt's startup errors."""
+        key, path = _HEALTH_ENDPOINTS[service.name]
+        host = "::1" if local_addresses()["family"] == "ipv6" else "127.0.0.1"
+        url = (
+            "http://" + format_host_port(host, OmegaConf.select(self.conf, key)) + path
+        )
+        deadline = time.monotonic() + 60
+        with requests.Session() as session:
+            session.trust_env = False
+            while True:
+                if service.process.poll() is not None:
+                    with service.log_file.open("rb") as log:
+                        log.seek(offset)
+                        message = log.read().decode("utf-8", errors="replace").lower()
+                    conflict = any(
+                        text in message
+                        for text in (
+                            "address already in use",
+                            "only one usage of each socket address",
+                            "[errno 10048]",
+                            "[winerror 10048]",
+                            "forbidden by its access permissions",
+                        )
+                    )
+                    error = PortConflictError if conflict else RuntimeError
+                    raise error(
+                        f"{service.name} exited during startup. See log: {service.log_file}"
+                    )
+                try:
+                    if session.get(url, timeout=1).status_code == 200:
+                        return
+                except requests.RequestException:
+                    pass
+                if time.monotonic() >= deadline:
+                    raise RuntimeError(
+                        f"{service.name} not ready after 60s. See log: {service.log_file}"
+                    )
+                time.sleep(0.2)
+
+    def _start_once(
+        self, *, detach: bool, attach_logs: bool, auto_port: bool
+    ) -> StartedStack | None:
         """Start local service processes and write the PID state file."""
         active_state = load_active_state(self.state_file)
         if active_state:
@@ -241,7 +261,6 @@ class LocalServiceRuntime:
 
         if auto_port:
             self._assign_ports()
-
         status_by_name = {status.name: status for status in statuses}
         tempo_status = status_by_name.get("tempo")
         grafana_status = status_by_name.get("grafana")
@@ -253,102 +272,73 @@ class LocalServiceRuntime:
         log_dir = (self.install_root / "logs").resolve()
         log_dir.mkdir(parents=True, exist_ok=True)
 
-        names = self.dependencies.enabled_services()
-        if bool(OmegaConf.select(self.conf, "server.enable", default=True)):
-            names.append("rl-insight-server")
         started: list[StartedService] = []
         try:
-            for name in names:
-                if name == "rl-insight-server":
-                    command = [
-                        sys.executable,
-                        "-m",
-                        "rl_insight.server.http_api",
-                        "--config",
-                        str(runtime_files.server_config),
-                    ]
-                else:
-                    binary = status_by_name[name].binary
-                    if binary is None:
-                        raise MissingDependencyError([status_by_name[name]])
-                    command = _service_command(
-                        name, binary, self.conf, runtime_files, self.install_root
-                    )
+            for name in self.dependencies.enabled_services():
+                binary = status_by_name[name].binary
+                if binary is None:
+                    raise MissingDependencyError([status_by_name[name]])
+                command = _service_command(
+                    name, binary, self.conf, runtime_files, self.install_root
+                )
                 log_file = log_dir / f"{name}.log"
-                log_offset = log_file.stat().st_size if log_file.exists() else 0
+                offset = log_file.stat().st_size if log_file.exists() else 0
                 process = _spawn_service(name, command, log_file)
                 started.append(
-                    StartedService(name, process, command, log_file, log_offset)
+                    StartedService(
+                        name=name,
+                        process=process,
+                        command=command,
+                        log_file=log_file,
+                    )
                 )
-                if not auto_port:
-                    time.sleep(0.3)
-                    return_code = process.poll()
-                    if return_code is not None:
-                        raise RuntimeError(
-                            f"{name} exited during startup with code {return_code}. "
-                            f"See log: {log_file}"
-                        )
-            if auto_port:
-                self._wait_ready(started)
-            stack = StartedStack(started, self.state_file, self.install_root)
-            _write_state(stack, self.conf)
-            return stack
+                if auto_port:
+                    self._wait_ready(started[-1], offset)
+                time.sleep(0.3)
+                return_code = process.poll()
+                if return_code is not None:
+                    raise RuntimeError(
+                        f"{name} exited during startup with code {return_code}. "
+                        f"See log: {log_file}"
+                    )
+            if _server_enabled(self.conf):
+                name = "rl-insight-server"
+                command = _server_command(self.conf, runtime_files)
+                log_file = log_dir / "rl-insight-server.log"
+                offset = log_file.stat().st_size if log_file.exists() else 0
+                process = _spawn_service(name, command, log_file)
+                started.append(
+                    StartedService(
+                        name=name,
+                        process=process,
+                        command=command,
+                        log_file=log_file,
+                    )
+                )
+                if auto_port:
+                    self._wait_ready(started[-1], offset)
+                time.sleep(0.3)
+                return_code = process.poll()
+                if return_code is not None:
+                    raise RuntimeError(
+                        f"{name} exited during startup with code {return_code}. "
+                        f"See log: {log_file}"
+                    )
         except BaseException:
             stop_started_services(started)
             raise
 
-    def _wait_ready(self, services: Sequence[StartedService]) -> None:
-        """Wait for HTTP readiness and report errors from this startup attempt."""
-        pending = {service.name for service in services}
-        deadline = time.monotonic() + 60
-        host = "::1" if local_addresses()["family"] == "ipv6" else "127.0.0.1"
-        with requests.Session() as session:
-            session.trust_env = False
-            while True:
-                for service in services:
-                    if service.process.poll() is not None:
-                        with service.log_file.open("rb") as log:
-                            log.seek(service.log_offset)
-                            message = (
-                                log.read().decode("utf-8", errors="replace").lower()
-                            )
-                        conflict = any(
-                            text in message
-                            for text in (
-                                "address already in use",
-                                "only one usage of each socket address",
-                                "[errno 10048]",
-                                "[winerror 10048]",
-                                "[errno 10013]",
-                                "[winerror 10013]",
-                                "forbidden by its access permissions",
-                            )
-                        )
-                        error = PortConflictError if conflict else RuntimeError
-                        raise error(
-                            f"{service.name} exited during startup. See log: {service.log_file}"
-                        )
-                    if service.name in pending:
-                        _, ports, path = _SERVICE_ENDPOINTS[service.name]
-                        url = (
-                            "http://"
-                            + format_host_port(
-                                host, OmegaConf.select(self.conf, ports[0])
-                            )
-                            + path
-                        )
-                        try:
-                            if session.get(url, timeout=1).status_code == 200:
-                                pending.remove(service.name)
-                        except requests.RequestException:
-                            pass
-                if not pending:
-                    return
-                if time.monotonic() >= deadline:
-                    raise RuntimeError(
-                        f"Services not ready after 60s: {', '.join(sorted(pending))}"
-                    )
-                time.sleep(0.2)
+        stack = StartedStack(
+            services=started,
+            state_file=self.state_file,
+            install_root=self.install_root,
+        )
+        _write_state(stack, self.conf)
+        if detach:
+            return stack
+        if attach_logs:
+            LogTailer([service.log_file for service in stack.services]).poll()
+        return stack
 
     def active_state(self) -> dict[str, Any] | None:
         """Return active state for the configured stack, if any."""
@@ -424,10 +414,6 @@ class LogTailer:
                     print(prefix + line)
 
 
-class PortConflictError(RuntimeError):
-    """A child process lost its allocated port before it could bind."""
-
-
 def _state_file_from_config(conf: DictConfig) -> Path:
     raw = OmegaConf.select(conf, "server.state_file")
     if raw:
@@ -446,6 +432,20 @@ def _write_runtime_config(conf: DictConfig, runtime_dir: Path) -> Path:
     target = runtime_dir / "server.yaml"
     OmegaConf.save(config=conf, f=str(target))
     return target
+
+
+def _server_enabled(conf: DictConfig) -> bool:
+    return bool(OmegaConf.select(conf, "server.enable", default=True))
+
+
+def _server_command(conf: DictConfig, runtime_files: RuntimeFiles) -> list[str]:
+    return [
+        sys.executable,
+        "-m",
+        "rl_insight.server.http_api",
+        "--config",
+        str(runtime_files.server_config),
+    ]
 
 
 def load_active_state(state_file: Path) -> dict[str, Any] | None:
@@ -791,10 +791,12 @@ def _render_tempo_config(
     server_data = data.setdefault("server", {})
     server_data["http_listen_port"] = query_port
     server_data["http_listen_address"] = local_addresses()["bind"]
-    if OmegaConf.select(conf, "tempo.grpc_port") is not None:
-        server_data["grpc_listen_port"] = int(conf.tempo.grpc_port)
-    if OmegaConf.select(conf, "tempo.memberlist_port") is not None:
-        data.setdefault("memberlist", {})["bind_port"] = int(conf.tempo.memberlist_port)
+    for key, section, field in (
+        ("grpc_port", "server", "grpc_listen_port"),
+        ("memberlist_port", "memberlist", "bind_port"),
+    ):
+        if OmegaConf.select(conf, f"tempo.{key}") is not None:
+            data.setdefault(section, {})[field] = int(conf.tempo[key])
     receiver = (
         data.setdefault("distributor", {})
         .setdefault("receivers", {})

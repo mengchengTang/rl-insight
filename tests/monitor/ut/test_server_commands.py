@@ -39,15 +39,17 @@ def test_parser_should_accept_targets_add_command(tmp_path) -> None:
     assert args.func.__name__ == "add_targets"
 
 
-def test_parser_should_accept_log_dir_for_server_start(tmp_path) -> None:
+@pytest.mark.parametrize("flags", [[], ["--auto-port", "--detach"]])
+def test_parser_should_accept_log_dir_for_server_start(tmp_path, flags) -> None:
     log_dir = tmp_path / "rl-insight-data"
 
     args = cli._build_parser().parse_args(
-        ["server", "start", "--log-dir", str(log_dir)]
+        ["server", "start", "--log-dir", str(log_dir), *flags]
     )
 
     assert args.log_dir == log_dir
-    assert args.detach is False
+    assert args.detach == bool(flags)
+    assert args.auto_port == bool(flags)
     assert args.func.__name__ == "start"
 
 
@@ -87,11 +89,19 @@ jobs:
 """.strip(),
         encoding="utf-8",
     )
+    runtime_config = OmegaConf.create({"prometheus": {"prometheus_port": 54321}})
+    OmegaConf.save(runtime_config, tmp_path / "server.yaml")
+    monkeypatch.setattr(
+        commands_module.ServerServiceManager,
+        "active_state",
+        lambda self: {"runtime_dir": str(tmp_path)},
+    )
     store = MagicMock()
+    factory = MagicMock(return_value=store)
     monkeypatch.setattr(
         commands_module.PrometheusTargetStore,
         "from_config",
-        MagicMock(return_value=store),
+        factory,
     )
 
     result = commands_module.ServerCommands().add_targets(
@@ -99,6 +109,8 @@ jobs:
     )
 
     assert result == 0
+    actual = factory.call_args.args[0]
+    assert actual.prometheus.prometheus_port == 54321
     assert store.register.call_args_list == [
         call(
             "npu-exporter",
@@ -153,35 +165,3 @@ def test_add_targets_should_fail_when_reload_raises(
 
     assert result == 1
     assert "Failed to add Prometheus targets" in capsys.readouterr().err
-
-
-def test_parser_should_accept_auto_port():
-    args = cli._build_parser().parse_args(
-        ["server", "start", "--auto-port", "--detach"]
-    )
-    assert args.auto_port is True
-    assert args.detach is True
-    assert cli._build_parser().parse_args(["server", "start"]).auto_port is False
-
-
-def test_add_targets_uses_running_config(monkeypatch, tmp_path):
-    target_file = tmp_path / "targets.yaml"
-    target_file.write_text(
-        "jobs: [{job_name: test, targets: ['localhost:9100']}]", encoding="utf-8"
-    )
-    runtime_config = OmegaConf.create({"prometheus": {"prometheus_port": 54321}})
-    OmegaConf.save(runtime_config, tmp_path / "server.yaml")
-    monkeypatch.setattr(
-        commands_module.ServerServiceManager,
-        "active_state",
-        lambda self: {"runtime_dir": str(tmp_path)},
-    )
-    factory = MagicMock()
-    monkeypatch.setattr(commands_module.PrometheusTargetStore, "from_config", factory)
-    assert (
-        commands_module.ServerCommands().add_targets(
-            argparse.Namespace(config=None, target_file=target_file)
-        )
-        == 0
-    )
-    assert factory.call_args.args[0].prometheus.prometheus_port == 54321
