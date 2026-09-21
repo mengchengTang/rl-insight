@@ -38,13 +38,7 @@ Then start the stack:
 rl-insight server start
 ```
 
-Use `rl-insight server start --auto-port` (optionally with `--detach`) to retain
-available configured ports and replace occupied ports with OS-assigned ports.
-This includes Tempo's internal gRPC and memberlist ports. Automatic mode waits
-for readiness and makes up to three startup attempts if a port is taken meanwhile.
-Actual ports are saved in the runtime config for service discovery, Grafana, and
-`server targets add`; original YAML is unchanged. Use the printed server and
-Grafana URLs, which may change between starts. Fixed-port mode is unchanged.
+Use `rl-insight server start --auto-port` (optionally with `--detach`) to retain available configured ports and replace occupied ports with OS-assigned ports. This includes Tempo's internal gRPC and memberlist ports. Automatic mode waits for readiness and makes up to three startup attempts if a port is taken meanwhile. Actual ports are saved in the runtime config for service discovery, Grafana, and `server targets add`; original YAML is unchanged. Use the printed server and Grafana URLs, which may change between starts. Fixed-port mode is unchanged.
 
 To use a custom data directory, pass `--log-dir`:
 
