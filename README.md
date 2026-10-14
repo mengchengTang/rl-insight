@@ -56,12 +56,14 @@ https://github.com/user-attachments/assets/d0ef242d-e108-468f-afa5-ec9a5321f0e8
 
 ## News
 
-- [2026/07/16] RL-Insight 0.2.0 is released and now integrated into verl. See the [verl integration guide](https://github.com/verl-project/verl/blob/main/docs/advance/rl_insight.md) to enable training, rollout, TransferQueue, trace, and hardware monitoring.
+- [2026/10/20] Tuning guides are available for [verl asynchronous training](docs/tuning_case/async_mode_tuning_tutorial.md) and [verl-omni multimodal training](docs/tuning_case/multimodal_model_tuning_using_rl_insight.md).
+- [2026/09/15] RL-Insight is integrated into verl-omni. See the [integration guide](https://github.com/verl-project/verl-omni/blob/main/docs/start/rl_insight.md).
+- [2026/07/15] [RL-Insight 0.2.0](https://github.com/verl-project/rl-insight/releases/tag/v0.2.0) was released. See the [verl integration guide](https://github.com/verl-project/verl/blob/main/docs/advance/rl_insight.md) to enable training, rollout, TransferQueue, trace, and hardware monitoring.
 - [2026/06/16] RL-Insight officially supports Online Monitor, including one-command server startup, trainer and rollout metric aggregation, and Grafana dashboards for RL workloads.
 
 ## Get Started
 
-Start with the guide that matches your current setup:
+RL-Insight requires **Python >= 3.10**. Training frameworks may require a newer version. Start with the guide that matches your current setup:
 
 | Document | What it covers | When to use it |
 |---|---|---|
@@ -73,6 +75,8 @@ Recommended order:
 
 1. Prepare the server services with [Server Installation](https://rl-insight.readthedocs.io/en/latest/monitor/server_installation.html).
 2. Run the end-to-end flow with [Quick Start](https://rl-insight.readthedocs.io/en/latest/monitor/quick_start.html).
+
+After Quick Start, connect a training job with the [verl](docs/monitor/integrations/verl/index.md) or [verl-omni](docs/monitor/integrations/verl-omni/index.md) integration guide.
 
 ## Server Stack
 
@@ -101,9 +105,11 @@ RL-Insight manages three open-source services locally on Linux and Windows x64:
 | `trace_span(name, start_time_ns, end_time_ns, attributes)` | Report one completed span directly, with a caller-supplied name, epoch-ns times, and attributes. |
 | `finish()` | Reset in-process monitor state. |
 
-Configuration can be passed to `insight.init(config=...)` or through environment variables:
+Training client configuration can be passed to `insight.init(config=...)` or through environment variables. It is separate from server YAML; see [Configuration and Switches](docs/monitor/configuration.md).
 
 ```python
+import rl_insight as insight
+
 insight.init(
     project="verl",
     experiment_name="ppo-smoke-test",
@@ -129,7 +135,7 @@ Useful environment variables:
 
 ## Recipe Offline Analysis
 
-Offline timeline, heatmap, and parser utilities are kept under `recipe/`; see the [Recipe documentation](https://rl-insight.readthedocs.io/en/latest/recipe/overview/architecture.html) for that workflow.
+Offline timeline, heatmap, and parser utilities are kept under `recipe/`; see the [Recipe documentation](docs/recipe/overview/architecture.md) for that workflow.
 Install the optional recipe dependencies with:
 
 ```bash
@@ -143,11 +149,12 @@ pip install "rl-insight[recipe]"
 
 ## Documentation
 
+- [Configuration and Switches](docs/monitor/configuration.md): server settings, client settings, framework switches, and connectivity checks.
 - [Quick Start](https://rl-insight.readthedocs.io/en/latest/monitor/quick_start.html): install RL-Insight, start the services, instrument code, and open Grafana.
 - [Server Installation](https://rl-insight.readthedocs.io/en/latest/monitor/server_installation.html): Linux and Windows service requirements, supported OS/CPU combinations, and version policy.
 - [Hardware Monitoring](https://rl-insight.readthedocs.io/en/latest/monitor/hardware/index.html): install exporters and register CPU or Ascend NPU scrape targets.
 - [Default server config](https://github.com/verl-project/rl-insight/blob/main/rl_insight/config/config.yaml): bundled ports, retention settings, and service config paths.
-- [Recipe documentation](https://rl-insight.readthedocs.io/en/latest/recipe/overview/architecture.html): offline timeline, heatmap, and parser utilities.
+- [Recipe documentation](docs/recipe/overview/architecture.md): offline timeline, heatmap, and parser utilities.
 
 ## Community
 

@@ -26,7 +26,7 @@ Furthermore, you can learn the development plan and roadmap via [RFC](https://gi
 
 ## Developing
 
-- Create and activate a Python virtual environment (Python >= 3.9).
+- Create and activate a Python virtual environment (Python >= 3.10).
 - Install the project in editable mode:
 
 ```bash
@@ -73,8 +73,22 @@ If possible, please add CI test(s) for your new feature:
 
 ## Building the Docs
 
-Currently the documentation is maintained as markdown files under the `docs/` directory.
-You can preview them locally with any markdown viewer or render them using your preferred static site generator.
+Offline Recipe documentation remains on GitHub under `docs/recipe/` and is excluded from the Read the Docs build and search index.
+
+Online documentation uses Sphinx with MyST Markdown under `docs/`; `docs/index.rst` defines the navigation. From the repository root, install the documentation dependencies and build HTML with warnings treated as errors:
+
+```bash
+python -m pip install -r docs/requirements-docs.txt
+python -m sphinx -b html -n -W --keep-going docs docs/_build/html
+```
+
+Open `docs/_build/html/index.html` to preview the site. To check external URLs as well:
+
+```bash
+python -m sphinx -b linkcheck docs docs/_build/linkcheck
+```
+
+Keep framework setup, launch commands, switches, and metric descriptions in `docs/monitor/integrations/<framework>/`. Keep performance tuning methodology and measured case studies in `docs/tuning_case/`; do not add example directories that only link to documentation. Record the upstream revision and prerequisites, and state whether commands were checked against source or executed on training hardware. Add new guides to the Sphinx navigation and check links from both GitHub and the rendered site.
 
 ## Pull Requests & Code Reviews
 
