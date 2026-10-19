@@ -349,6 +349,7 @@ def test_auto_ports_and_rendered_config(tmp_path, udp):
         tempo = yaml.safe_load(rendered.read_text())
         assert tempo["server"]["grpc_listen_port"] == conf.tempo.grpc_port
         assert tempo["memberlist"]["bind_port"] == conf.tempo.memberlist_port
+        assert tempo["stream_over_http_enabled"] is True
 
 
 @pytest.mark.parametrize("races", [0, 1, 3])
