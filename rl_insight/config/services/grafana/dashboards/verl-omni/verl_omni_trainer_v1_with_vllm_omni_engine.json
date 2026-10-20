@@ -6038,7 +6038,7 @@
         "spec": {
           "id": 967,
           "title": "$trainer_metric",
-          "description": "One chart per metric name. The legend is project-experiment_name-metric name, and the x axis shows integer training steps.",
+          "description": "Legend is project-experiment_name-metric name, with the last value on the right. The x axis is the training step. The query returns at most 100000 spans. A result that comes back full is truncated, and sorting cannot restore the missing steps.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -6055,7 +6055,7 @@
                         "name": "tempo"
                       },
                       "spec": {
-                        "limit": 10000,
+                        "limit": 100000,
                         "query": "{ resource.service.name = \"rl_insight_monitor\" && span.\"monitor.trace_segment\" = \"metric_log\" && span.\"metric.name\" = \"$trainer_metric\" && span.project =~ \"$project\" && span.experiment_name =~ \"$experiment_name\" && span.global_step != nil && span.\"metric.value\" != nil }",
                         "queryType": "traceql",
                         "serviceMapUseNativeHistograms": false,
@@ -6298,13 +6298,14 @@
                                   "queryType": "traceql",
                                   "refId": "StandardVariableQuery",
                                   "type": 1,
-                                  "label": "metric.name"
+                                  "label": "metric.name",
+                                  "query": "{ resource.service.name = \"rl_insight_monitor\" && span.\"monitor.trace_segment\" = \"metric_log\" && span.project =~ \"$project\" && span.experiment_name =~ \"$experiment_name\" && span.global_step != nil && span.\"metric.value\" != nil }"
                                 }
                               },
                               "regex": "/^${metric_group}(?:\\/.*)?$/",
                               "regexApplyTo": "value",
                               "sort": "alphabeticalAsc",
-                              "definition": "label_values(metric.name)",
+                              "definition": "{ resource.service.name = \"rl_insight_monitor\" && span.\"monitor.trace_segment\" = \"metric_log\" && span.project =~ \"$project\" && span.experiment_name =~ \"$experiment_name\" && span.global_step != nil && span.\"metric.value\" != nil }",
                               "options": [],
                               "multi": true,
                               "includeAll": true,
@@ -7293,7 +7294,7 @@
           },
           "label": "training: Project",
           "hide": "dontHide",
-          "refresh": "onDashboardLoad",
+          "refresh": "onTimeRangeChanged",
           "skipUrlSync": false,
           "query": {
             "kind": "DataQuery",
@@ -7330,7 +7331,7 @@
           },
           "label": "training: Experiment Name",
           "hide": "dontHide",
-          "refresh": "onDashboardLoad",
+          "refresh": "onTimeRangeChanged",
           "skipUrlSync": false,
           "query": {
             "kind": "DataQuery",
@@ -7366,7 +7367,7 @@
             "value": "$__all"
           },
           "label": "training: Group",
-          "hide": "dontHide",
+          "hide": "hideVariable",
           "refresh": "onTimeRangeChanged",
           "skipUrlSync": false,
           "query": {
@@ -7380,13 +7381,14 @@
               "queryType": "traceql",
               "refId": "StandardVariableQuery",
               "type": 1,
-              "label": "metric.name"
+              "label": "metric.name",
+              "query": "{ resource.service.name = \"rl_insight_monitor\" && span.\"monitor.trace_segment\" = \"metric_log\" && span.project =~ \"$project\" && span.experiment_name =~ \"$experiment_name\" && span.global_step != nil && span.\"metric.value\" != nil }"
             }
           },
           "regex": "/^([^\\/]+)/",
           "regexApplyTo": "value",
           "sort": "alphabeticalAsc",
-          "definition": "label_values(metric.name)",
+          "definition": "{ resource.service.name = \"rl_insight_monitor\" && span.\"monitor.trace_segment\" = \"metric_log\" && span.project =~ \"$project\" && span.experiment_name =~ \"$experiment_name\" && span.global_step != nil && span.\"metric.value\" != nil }",
           "options": [],
           "multi": true,
           "includeAll": true,

@@ -888,6 +888,14 @@ def _render_grafana_provisioning(
                 "url": "http://"
                 + format_host_port(local_addresses()["loopback"], tempo_query_port),
                 "editable": True,
+                # Grafana omits the dashboard range on tag queries when this is
+                # unset or left at the 30-minute default. Match Tempo retention
+                # so tag options stay inside the traces Tempo still stores.
+                "jsonData": {
+                    "timeRangeForTags": _duration_seconds(
+                        _select_str(conf, "tempo.retention_time") or "30d"
+                    )
+                },
             }
         )
     datasource_data = {
@@ -1148,6 +1156,16 @@ def _set_tempo_retention(
     data.setdefault("compactor", {}).setdefault("compaction", {})["block_retention"] = (
         retention
     )
+
+
+def _duration_seconds(value: str) -> int:
+    raw = value.strip().lower()
+    units = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800}
+    if len(raw) >= 2 and raw[-1] in units and raw[:-1].isdigit():
+        return int(raw[:-1]) * units[raw[-1]]
+    if raw.isdigit():
+        return int(raw)
+    return 30 * 86400
 
 
 def _tempo_duration(value: str) -> str:
