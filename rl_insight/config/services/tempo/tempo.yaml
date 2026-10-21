@@ -1,6 +1,3 @@
-# Grafana's Tempo client dials this HTTP port with gRPC for TraceQL queries.
-stream_over_http_enabled: true
-
 server:
   http_listen_port: 3200
 
