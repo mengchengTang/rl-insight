@@ -71,7 +71,13 @@ language = "en"
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 # Recipe documentation is maintained on GitHub, not published on Read the Docs.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "recipe/**"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "recipe/**",
+    "monitor/hardware/*_zh.md",
+]
 
 # -- Options for HTML output -------------------------------------------------
 

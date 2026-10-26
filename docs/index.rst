@@ -17,17 +17,10 @@ For CPU, memory, disk, network, or Ascend NPU metrics, see
    :maxdepth: 2
    :caption: Monitor
 
-   Quick Start <monitor/quick_start>
-   Configuration <monitor/configuration>
-   Python API <monitor/api>
-   Custom Grafana Dashboards <monitor/custom_dashboards>
-   Agent Loop Protocol <monitor/agent_loop_protocol>
-   Server Installation <monitor/server_installation>
-   Data Directory Migration <monitor/data_migration>
+   Getting Started <monitor/getting_started>
+   Instrumentation <monitor/instrumentation>
+   Operations <monitor/operations>
    Hardware Monitoring <monitor/hardware/index>
-   verl Metrics <monitor/metric-name-catalog>
-   Push Metric Distributions <monitor/push-distributions>
-   Stress Test Report <monitor/stress_test_report>
 
 .. toctree::
    :maxdepth: 1
@@ -42,14 +35,6 @@ For CPU, memory, disk, network, or Ascend NPU metrics, see
 
    Async RL Training Tuning Guide <tuning_case/async_mode_tuning_tutorial>
    Multimodal Model Tuning Using RL-Insight <tuning_case/multimodal_model_tuning_using_rl_insight>
-
-.. toctree::
-   :hidden:
-
-   monitor/hardware/cpu_monitoring_zh
-   monitor/hardware/cpu_monitoring_en
-   monitor/hardware/npu_monitoring_zh
-   monitor/hardware/npu_monitoring_en
 
 Contribution
 -------------

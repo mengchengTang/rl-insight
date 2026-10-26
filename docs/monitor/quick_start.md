@@ -218,10 +218,10 @@ If metrics do not appear, check that the monitor hub process is reachable from P
 
 For framework-specific setup and monitoring switches, follow the maintained upstream guides:
 
-| Framework | Training example | Upstream RL-Insight integration |
+| Framework | Getting started | Upstream RL-Insight integration |
 | --- | --- | --- |
-| verl | [Qwen3-8B PPO](integrations/verl/index.md) | [Official integration guide](https://github.com/verl-project/verl/blob/main/docs/advance/rl_insight.md) |
-| verl-omni | [Qwen-Image FlowGRPO](integrations/verl-omni/index.md) | [Official integration guide](https://github.com/verl-project/verl-omni/blob/main/docs/start/rl_insight.md) |
+| verl | [verl](integrations/verl/index.md) | [Official integration guide](https://github.com/verl-project/verl/blob/main/docs/advance/rl_insight.md) |
+| verl-omni | [verl-omni](integrations/verl-omni/index.md) | [Official integration guide](https://github.com/verl-project/verl-omni/blob/main/docs/start/rl_insight.md) |
 
 For verl metric names, types, calculations, and descriptions, see the existing [verl metric reference](metric-name-catalog.md).
 
