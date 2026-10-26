@@ -1,6 +1,6 @@
 # verl Metric Reference
 
-Use this reference with the [training example](index.md). Metrics depend on the trainer, algorithm, and engine version; an unused component will not produce data just because its dashboard panel exists.
+Use this reference with the [upstream verl integration guide](https://github.com/verl-project/verl/blob/main/docs/advance/rl_insight.md). Metrics depend on the trainer, algorithm, and engine version; an unused component will not produce data just because its dashboard panel exists.
 
 ## Trainer metrics
 
@@ -39,4 +39,4 @@ For classic histograms, query `_bucket`, `_sum`, and `_count` series; use `histo
 
 RL state intervals are stored in Tempo, not Prometheus. They describe instrumented operations on worker or replica lanes. They do not by themselves represent token-level engine timing. Hardware panels require separately registered exporters.
 
-If data is absent, check in order: selected project/experiment and time range, completed training steps, Prometheus target health, the source-specific switches in [Configuration](../../configuration.md), and whether that trainer actually emits the metric. For traces, check Tempo and worker instrumentation separately.
+If data is absent, check in order: selected project/experiment and time range, completed training steps, Prometheus target health, the switches in the upstream integration guide, and whether that trainer actually emits the metric. For traces, check Tempo and worker instrumentation separately.

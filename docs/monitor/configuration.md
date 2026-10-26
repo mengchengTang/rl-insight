@@ -1,28 +1,13 @@
-# Configuration and Switches
+# Configuration
 
-Starting the server makes storage and dashboards available. Training produces data only after its integration is enabled.
+Configure the service stack and the training client separately. For Python function parameters and examples, see the [Python API](api.md).
 
-## Choose a configuration layer
-
-| Layer | Configuration entry | Purpose |
+| Configuration | Entry point | Purpose |
 | --- | --- | --- |
-| Server stack | YAML passed to `rl-insight server start --config` | Services, ports, storage, dashboards |
-| Training client | `rl_insight.init(config=...)` and environment variables | Worker connection and metric reporting |
-| Framework | verl or verl-omni training arguments | Training metrics, engine metrics, and instrumented states |
+| Server | `rl-insight server start --config server.yaml` | Services, listening ports, storage, dashboards |
+| Training client | `RL_INSIGHT_CONFIG` or `rl_insight.init(config=...)` | Backend, server connection, metric reporting |
 
-These are separate configurations. Server-side `server.backend=local` manages service processes; client-side `server.backend=ray` selects the training transport. Do not pass server YAML to `init()`.
-
-For a first run, start the services with [Quick Start](quick_start.md), set `RL_INSIGHT_SERVER_URL` in the training environment, and enable the framework logger. The [verl](integrations/verl/index.md) and [verl-omni](integrations/verl-omni/index.md) examples provide complete launch commands.
-
-## Configuration precedence
-
-| Layer | Order, from lowest to highest priority |
-| --- | --- |
-| Server | Bundled `config.yaml` → custom `--config` YAML → applicable CLI overrides (`--log-dir`, `--extra-dashboard-dir`); `--auto-port` may replace occupied ports at startup |
-| Training client | Built-in defaults → `init(config=...)` → `RL_INSIGHT_SERVER_URL` / `RL_INSIGHT_SERVER_BACKEND` environment overrides |
-| Framework example | Upstream Hydra configuration → recipe script arguments → arguments appended to the script through `"$@"` |
-
-`RL_INSIGHT_SERVER_URL` connects clients to an existing server; it does not change the server's listening port. Use the URLs printed after startup, especially with `--auto-port`.
+Framework-specific switches belong to the [verl integration guide](https://github.com/verl-project/verl/blob/main/docs/advance/rl_insight.md) and [verl-omni integration guide](https://github.com/verl-project/verl-omni/blob/main/docs/start/rl_insight.md).
 
 ## Server settings
 
@@ -73,61 +58,73 @@ tempo:
 
 Use `--auto-port` to replace occupied ports and follow the printed URLs. Use `--extra-dashboard-dir` for [custom dashboards](custom_dashboards.md).
 
+Server precedence is bundled defaults, then custom YAML, then applicable CLI overrides. `--log-dir` overrides `server.data_dir`; `--extra-dashboard-dir` overrides `grafana.extra_dashboard_dir`. Client environment variables do not change server listening ports.
+
 ## Training client settings
 
-| Setting in `init(config=...)` | Default | Meaning |
+### Choose a backend
+
+| `server.backend` | Requirements | Data path |
 | --- | --- | --- |
-| `server.url` | Empty; required | Cluster-reachable RL-Insight API URL |
-| `server.backend` | `ray` | Built-in client backend; requires initialized Ray |
-| `server.namespace` | `rl_insight_monitor` | Metric prefix and OTEL service name, not Ray actor namespace |
+| `ray` (default) | Initialized Ray and reachable `server.url` | Workers to Ray hub, then Prometheus metrics and Tempo traces |
+| `push` | Configured push sinks | In-process client to sinks; no Ray or RL-Insight server URL required |
+
+The server YAML uses `server.backend: local` to manage service processes. This is separate from the client backend; do not pass server YAML to `init()`.
+
+### Configure the Ray client
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `server.url` | Empty | Required server API URL for Ray; not the Grafana URL |
+| `server.backend` | `ray` | Selects `ray` or `push` |
+| `server.namespace` | `rl_insight_monitor` | Ray metric prefix and OTEL service name, not Ray actor namespace |
 | `prometheus.metrics_report_port` | `9092` | Hub HTTP port scraped by Prometheus |
 
-The following environment variables override the corresponding client settings when set to non-empty values:
+Save the following as `client.yaml` on each training node:
 
-| Environment variable | Overrides |
-| --- | --- |
-| `RL_INSIGHT_SERVER_URL` | `server.url` |
-| `RL_INSIGHT_SERVER_BACKEND` | `server.backend` |
+```yaml
+server:
+  backend: ray
+  url: http://<server-ip>:18080
+  namespace: rl_insight_monitor
+prometheus:
+  metrics_report_port: 9092
+```
 
-Set these before initializing workers. Preserve the default namespace for bundled dashboards, which query that prefix. Separate Ray jobs whose hubs share a host need distinct available reporting ports.
+Set the path before starting training:
 
-For custom instrumentation, call `ray.init()` before `rl_insight.init()`. A missing URL or uninitialized Ray leaves monitoring inactive. Repeated initialization after success is ignored. `finish()` resets instrumentation in the current process; it does not stop services or delete data.
+```bash
+export RL_INSIGHT_CONFIG=/absolute/path/to/client.yaml
+```
 
-The hub is shared within a Ray job. Its first initialization establishes the reporting port and namespace; setting a different config in a later worker does not reconfigure that hub. Restart the Ray job when changing hub settings.
+Alternatively, pass this structure to `init(config=...)`; see the [initialization example](api.md#initialize-and-finish).
 
-## Framework switches
+### Override precedence
 
-These are training command overrides, not server YAML. Defaults can be changed by the selected upstream recipe.
+From lowest to highest priority:
 
-| Switch | Base behavior | Monitoring setting |
-| --- | --- | --- |
-| `trainer.logger` | Recipe-dependent | Include `rl_insight`; retain other loggers if needed |
-| `trainer.project_name`, `trainer.experiment_name` | Recipe-dependent | Identities used to filter dashboards |
-| `actor_rollout_ref.rollout.disable_log_stats` | Normally `true` | Set `False` for engine metrics; required by verl-omni when monitoring is enabled |
-| `transfer_queue.metrics.enabled` | Normally `false` | Set `True` for a training mode that uses TransferQueue |
+1. Built-in client defaults.
+2. YAML file named by `RL_INSIGHT_CONFIG`.
+3. Explicit `init(config=...)` values.
+4. `RL_INSIGHT_SERVER_URL` and `RL_INSIGHT_SERVER_BACKEND` environment overrides.
 
-The framework manages `VERL_RL_INSIGHT_ENABLE`. Setting it alone does not replace `trainer.logger`. To disable framework reporting, remove `rl_insight` from the logger list and start a fresh job without a manually inherited enable variable. There is no package-wide `RL_INSIGHT_ENABLED` switch.
+For example, if the YAML specifies port `18080` but `RL_INSIGHT_SERVER_URL` specifies `18081`, the client connects to `18081`. A missing or unreadable external YAML logs a warning and is ignored.
 
-TransferQueue metrics do not enable TransferQueue itself. Hardware exporters require separate [hardware monitoring setup](hardware/index.md). Instrumented RL state traces and engine-native detailed inference traces are different features; enabling the logger does not guarantee detailed engine traces.
-
-## Feature dependencies
-
-| Data you want | Training or exporter requirement | Server requirement |
-| --- | --- | --- |
-| Trainer scalar metrics | `rl_insight` logger, client package installed in workers, reachable server URL | Prometheus scraping the Ray hub |
-| Rollout engine metrics | Logger plus `disable_log_stats=False`; supported engine integration registers its endpoint | Prometheus can reach each registered rollout endpoint |
-| TransferQueue metrics | A trainer using TransferQueue plus `transfer_queue.metrics.enabled=True` | Prometheus can reach the queue endpoint |
-| RL state traces | Instrumented framework operations and enabled worker client | Tempo enabled and OTLP HTTP reachable from the hub or instrumented workers |
-| CPU / Ascend NPU metrics | Exporters installed and registered separately | Prometheus can reach exporter endpoints |
-| Dashboard views | Collected metrics or traces for the chosen run | Grafana and the corresponding Prometheus / Tempo data source |
-
-Disabling Grafana does not stop collection. Disabling Tempo removes trace storage but leaves metric collection available. Disabling Prometheus removes metric scraping and storage even if training continues to emit values.
+The Ray hub is shared within a job. Its first initialization establishes its settings; later workers do not reconfigure it. Restart the job after changing hub settings. Jobs whose hubs share a host need distinct available reporting ports. Keep the default namespace when using bundled dashboards.
 
 ## Connectivity and verification
 
-Workers must reach the server API (`18080`) and OTLP endpoint (`4318` when enabled). Prometheus must reach the hub (`9092` by default), rollout endpoints, and exporters. Opening Grafana alone does not verify these paths.
+For the Ray backend, verify these paths:
 
-For Ray job submission, merge this into the runtime environment actually used by the job:
+| Source | Destination | Default port |
+| --- | --- | --- |
+| Training processes | RL-Insight server API | `18080` |
+| Ray hub / trace exporters | Tempo OTLP HTTP | `4318` |
+| Prometheus | Ray hub metrics endpoint | `9092` |
+| Prometheus | Registered engine or hardware exporter | Endpoint-specific |
+| Browser | Grafana | `3000` |
+
+Use cluster-reachable addresses. For Ray job submission, propagate settings through the job's runtime environment:
 
 ```yaml
 env_vars:
@@ -135,6 +132,6 @@ env_vars:
   RL_INSIGHT_SERVER_BACKEND: "ray"
 ```
 
-Use a cluster-reachable address rather than worker-local `localhost`. Check discovery from the training host with `curl http://<server-ip>:18080/api/v1/services`, then inspect Prometheus **Status → Targets** for successful scrapes.
+If using `RL_INSIGHT_CONFIG`, propagate it too and ensure the file exists at the same path on each worker node.
 
-Continue with the [verl example](integrations/verl/index.md) or [verl-omni example](integrations/verl-omni/index.md).
+Check discovery from the training host with `curl http://<server-ip>:18080/api/v1/services`, then inspect Prometheus **Status → Targets**. Check Tempo and OTLP connectivity separately for missing traces. See [Quick Start](quick_start.md) for an end-to-end demo and [Hardware Monitoring](hardware/index.md) for exporter setup.

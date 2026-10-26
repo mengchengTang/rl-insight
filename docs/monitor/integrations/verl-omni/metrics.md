@@ -1,6 +1,6 @@
 # verl-omni Metric Reference
 
-Use this reference with the [FlowGRPO example](index.md). The selected algorithm and rollout engine determine which metrics exist; text-generation panels need not contain data for diffusion workloads.
+Use this reference with the [upstream verl-omni integration guide](https://github.com/verl-project/verl-omni/blob/main/docs/start/rl_insight.md). The selected algorithm and rollout engine determine which metrics exist; text-generation panels need not contain data for diffusion workloads.
 
 ## Trainer and diffusion metrics
 
@@ -34,4 +34,4 @@ Engine and TransferQueue metrics are scraped separately and retain their native 
 
 First confirm project, experiment, and time range. Trainer gauges update as steps complete and are sampled by Prometheus; they do not preserve every intermediate training event. Queue panels require the V1/TransferQueue path, and model-specific engine panels can remain empty for diffusion runs. Missing hardware panels require [exporter setup](../../hardware/index.md), not another trainer flag.
 
-Check the [configuration guide](../../configuration.md) for switches and network directions. Use Prometheus target health to diagnose scraping, and Tempo availability to diagnose traces independently.
+Check the [configuration guide](../../configuration.md) for client settings and network directions. Use Prometheus target health to diagnose scraping, and Tempo availability to diagnose traces independently.

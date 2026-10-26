@@ -5,10 +5,7 @@ RL-Insight is a performance insight and observability toolkit for reinforcement 
 It focuses on online observability for distributed RL training.
 
 Start with :doc:`Quick Start <monitor/quick_start>` to verify metrics and traces,
-then use :doc:`Configuration and Switches <monitor/configuration>` to configure your deployment.
-Continue with a real :doc:`verl <monitor/integrations/verl/index>` or
-:doc:`verl-omni <monitor/integrations/verl-omni/index>` training run.
-
+then use :doc:`Configuration <monitor/configuration>` to configure your deployment.
 For CPU, memory, disk, network, or Ascend NPU metrics, see
 :doc:`Hardware Monitoring <monitor/hardware/index>`.
 
@@ -21,7 +18,8 @@ For CPU, memory, disk, network, or Ascend NPU metrics, see
    :caption: Monitor
 
    Quick Start <monitor/quick_start>
-   Configuration and Switches <monitor/configuration>
+   Configuration <monitor/configuration>
+   Python API <monitor/api>
    Custom Grafana Dashboards <monitor/custom_dashboards>
    Agent Loop Protocol <monitor/agent_loop_protocol>
    Server Installation <monitor/server_installation>
@@ -33,10 +31,10 @@ For CPU, memory, disk, network, or Ascend NPU metrics, see
 
 .. toctree::
    :maxdepth: 1
-   :caption: Framework Integrations
+   :caption: Framework Metrics
 
-   verl <monitor/integrations/verl/index>
-   verl-omni <monitor/integrations/verl-omni/index>
+   verl Metrics <monitor/integrations/verl/metrics>
+   verl-omni Metrics <monitor/integrations/verl-omni/metrics>
 
 .. toctree::
    :maxdepth: 2

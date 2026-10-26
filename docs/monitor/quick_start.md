@@ -175,7 +175,7 @@ rl-insight server stop
 
 ## Configuration Shortcuts
 
-See [Configuration and Switches](configuration.md) for all supported configuration layers, defaults, dependencies, and override precedence. The settings below belong to the training client, not the server YAML.
+See [Configuration](configuration.md) for server and client settings, defaults, and override precedence. The settings below belong to the training client, not the server YAML.
 
 Pass overrides through `insight.init(config=...)`:
 
@@ -216,13 +216,11 @@ If metrics do not appear, check that the monitor hub process is reachable from P
 
 ## Next Steps: Monitor a Real Training Run
 
-The demo above verifies the monitoring stack. Continue with a framework integration guide for data preparation, training commands, monitoring switches, and metric interpretation:
+For framework-specific setup and monitoring switches, follow the maintained upstream guides:
 
-| Framework | Training setup and metrics | Upstream integration |
+| Framework | RL-Insight integration | Metric reference |
 | --- | --- | --- |
-| verl | [Qwen3-8B PPO example](integrations/verl/index.md) · [Metrics](integrations/verl/metrics.md) | [verl integration guide](https://github.com/verl-project/verl/blob/main/docs/advance/rl_insight.md) |
-| verl-omni | [Qwen-Image FlowGRPO example](integrations/verl-omni/index.md) · [Metrics](integrations/verl-omni/metrics.md) | [verl-omni integration guide](https://github.com/verl-project/verl-omni/blob/main/docs/start/rl_insight.md) |
+| verl | [Official integration guide](https://github.com/verl-project/verl/blob/main/docs/advance/rl_insight.md) | [verl metrics](integrations/verl/metrics.md) |
+| verl-omni | [Official integration guide](https://github.com/verl-project/verl-omni/blob/main/docs/start/rl_insight.md) | [verl-omni metrics](integrations/verl-omni/metrics.md) |
 
-Each example states its upstream reference revision, hardware prerequisites, and validation scope. Framework and engine Python requirements may be higher than RL-Insight's minimum.
-
-Once monitoring is working, use the [verl async training tuning guide](../tuning_case/async_mode_tuning_tutorial.md) or the [verl-omni multimodal tuning case](../tuning_case/multimodal_model_tuning_using_rl_insight.md) to interpret bottlenecks and tune a real workload.
+For custom instrumentation, see the [Python API](api.md). Once monitoring is working, continue with the [verl async training tuning guide](../tuning_case/async_mode_tuning_tutorial.md) or [verl-omni multimodal tuning case](../tuning_case/multimodal_model_tuning_using_rl_insight.md).
