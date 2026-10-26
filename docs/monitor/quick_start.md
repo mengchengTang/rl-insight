@@ -218,9 +218,11 @@ If metrics do not appear, check that the monitor hub process is reachable from P
 
 For framework-specific setup and monitoring switches, follow the maintained upstream guides:
 
-| Framework | RL-Insight integration | Metric reference |
+| Framework | Training example | Upstream RL-Insight integration |
 | --- | --- | --- |
-| verl | [Official integration guide](https://github.com/verl-project/verl/blob/main/docs/advance/rl_insight.md) | [verl metrics](integrations/verl/metrics.md) |
-| verl-omni | [Official integration guide](https://github.com/verl-project/verl-omni/blob/main/docs/start/rl_insight.md) | [verl-omni metrics](integrations/verl-omni/metrics.md) |
+| verl | [Qwen3-8B PPO](integrations/verl/index.md) | [Official integration guide](https://github.com/verl-project/verl/blob/main/docs/advance/rl_insight.md) |
+| verl-omni | [Qwen-Image FlowGRPO](integrations/verl-omni/index.md) | [Official integration guide](https://github.com/verl-project/verl-omni/blob/main/docs/start/rl_insight.md) |
+
+For verl metric names, types, calculations, and descriptions, see the existing [verl metric reference](metric-name-catalog.md).
 
 For custom instrumentation, see the [Python API](api.md). Once monitoring is working, continue with the [verl async training tuning guide](../tuning_case/async_mode_tuning_tutorial.md) or [verl-omni multimodal tuning case](../tuning_case/multimodal_model_tuning_using_rl_insight.md).

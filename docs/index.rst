@@ -25,16 +25,16 @@ For CPU, memory, disk, network, or Ascend NPU metrics, see
    Server Installation <monitor/server_installation>
    Data Directory Migration <monitor/data_migration>
    Hardware Monitoring <monitor/hardware/index>
-   Metric Name Catalog <monitor/metric-name-catalog>
+   verl Metrics <monitor/metric-name-catalog>
    Push Metric Distributions <monitor/push-distributions>
    Stress Test Report <monitor/stress_test_report>
 
 .. toctree::
    :maxdepth: 1
-   :caption: Framework Metrics
+   :caption: Framework Integrations
 
-   verl Metrics <monitor/integrations/verl/metrics>
-   verl-omni Metrics <monitor/integrations/verl-omni/metrics>
+   verl <monitor/integrations/verl/index>
+   verl-omni <monitor/integrations/verl-omni/index>
 
 .. toctree::
    :maxdepth: 2
