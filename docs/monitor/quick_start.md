@@ -220,8 +220,8 @@ For framework-specific setup and monitoring switches, follow the maintained upst
 
 | Framework | Getting started | Upstream RL-Insight integration |
 | --- | --- | --- |
-| verl | [verl](integrations/verl/index.md) | [Official integration guide](https://github.com/verl-project/verl/blob/main/docs/advance/rl_insight.md) |
-| verl-omni | [verl-omni](integrations/verl-omni/index.md) | [Official integration guide](https://github.com/verl-project/verl-omni/blob/main/docs/start/rl_insight.md) |
+| verl | [verl](integrations/verl.md) | [Official integration guide](https://github.com/verl-project/verl/blob/main/docs/advance/rl_insight.md) |
+| verl-omni | [verl-omni](integrations/verl-omni.md) | [Official integration guide](https://github.com/verl-project/verl-omni/blob/main/docs/start/rl_insight.md) |
 
 For verl metric names, types, calculations, and descriptions, see the existing [verl metric reference](metric-name-catalog.md).
 

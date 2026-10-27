@@ -131,15 +131,6 @@ Useful environment variables:
 | `RL_INSIGHT_SERVER_URL` | RL-Insight server URL, for example `http://<server-ip>:18080`. |
 | `RL_INSIGHT_SERVER_BACKEND` | Trainer-side monitor client backend (`server.backend`), for example `ray`. Also applies to worker processes that call `rl_insight.init()` without a config. |
 
-## Recipe Offline Analysis
-
-Offline timeline, heatmap, and parser utilities are kept under `recipe/`; see the [Recipe documentation](https://rl-insight.readthedocs.io/en/latest/recipe/overview/architecture.html) for that workflow.
-Install the optional recipe dependencies with:
-
-```bash
-pip install "rl-insight[recipe]"
-```
-
 ## Roadmap
 
 - Q1 Roadmap https://github.com/verl-project/rl-insight/issues/6
@@ -153,7 +144,6 @@ pip install "rl-insight[recipe]"
 - [Server Installation](https://rl-insight.readthedocs.io/en/latest/monitor/server_installation.html): Linux and Windows service requirements, supported OS/CPU combinations, and version policy.
 - [Hardware Monitoring](https://rl-insight.readthedocs.io/en/latest/monitor/hardware/index.html): install exporters and register CPU or Ascend NPU scrape targets.
 - [Default server config](https://github.com/verl-project/rl-insight/blob/main/rl_insight/config/config.yaml): bundled ports, retention settings, and service config paths.
-- [Recipe documentation](https://rl-insight.readthedocs.io/en/latest/recipe/overview/architecture.html): offline timeline, heatmap, and parser utilities.
 
 ## Community
 

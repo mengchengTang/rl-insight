@@ -26,8 +26,8 @@ For CPU, memory, disk, network, or Ascend NPU metrics, see
    :maxdepth: 1
    :caption: Framework Integrations
 
-   verl <monitor/integrations/verl/index>
-   verl-omni <monitor/integrations/verl-omni/index>
+   verl <monitor/integrations/verl>
+   verl-omni <monitor/integrations/verl-omni>
 
 .. toctree::
    :maxdepth: 2
